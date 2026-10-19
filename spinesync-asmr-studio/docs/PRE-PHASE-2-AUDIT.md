@@ -168,6 +168,14 @@ When smoke is checked, proceed to Phase 2.2 (edit persistence / asset store).
 - [x] Editor copy clarifies preview-only vs server export
 - [ ] Manual smoke: long file where audio decode ≠ video duration — warning visible, trim sane
 
+### Phase 2.6 — incremental preview
+
+- [x] `POST /api/preview/reel` — trim + 9:16 ffmpeg preview (no Whisper/GPT/thumb stages)
+- [x] Content-addressed cache under `uploads/previews/{cacheId}/reel.mp4`
+- [x] Editor **Quick ffmpeg preview** button (server mode + uploaded asset)
+- [x] Preview player swaps to baked reel URL; skips live Web Audio sculpt on baked output
+- [ ] Manual smoke: trim in editor → quick preview → 9:16 matches trim (no full pipeline)
+
 ---
 
 ## 9. Related docs

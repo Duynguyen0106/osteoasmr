@@ -32,6 +32,9 @@ interface ReelProEditorProps {
   durationMismatch?: boolean;
   durationMismatchDetail?: string;
   exportsEditsToPipeline?: boolean;
+  onQuickPreview?: () => void;
+  quickPreviewLoading?: boolean;
+  quickPreviewError?: string | null;
   onEditChange?: (edit: ReturnType<typeof useReelEditor>["edit"]) => void;
   onSeekPreview?: (clipTimeSec: number) => void;
 }
@@ -46,6 +49,9 @@ export function ReelProEditor({
   durationMismatch,
   durationMismatchDetail,
   exportsEditsToPipeline = true,
+  onQuickPreview,
+  quickPreviewLoading = false,
+  quickPreviewError = null,
   onEditChange,
   onSeekPreview,
 }: ReelProEditorProps) {
@@ -112,7 +118,17 @@ export function ReelProEditor({
               : "Trim · peak · captions · zoom — preview only until server pipeline mode is enabled"}
           </p>
         </div>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap items-center gap-1">
+          {exportsEditsToPipeline && onQuickPreview && (
+            <button
+              type="button"
+              disabled={quickPreviewLoading}
+              className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-100 hover:bg-cyan-500/20 disabled:opacity-50"
+              onClick={() => onQuickPreview()}
+            >
+              {quickPreviewLoading ? "Baking preview…" : "Quick ffmpeg preview"}
+            </button>
+          )}
           <button
             type="button"
             className="rounded-lg border border-slate-600/50 p-1.5 text-slate-300 hover:bg-slate-800"
@@ -130,6 +146,9 @@ export function ReelProEditor({
             <Redo2 className="h-4 w-4" />
           </button>
         </div>
+        {quickPreviewError && (
+          <p className="text-[10px] text-amber-200/90">{quickPreviewError}</p>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-1">

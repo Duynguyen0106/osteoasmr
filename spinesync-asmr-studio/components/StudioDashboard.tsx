@@ -36,6 +36,7 @@ import { JobHistoryPanel } from "@/components/jobs/JobHistoryPanel";
 import { useSourceAudioProfile } from "@/hooks/useSourceAudioProfile";
 import { spinesyncFetch } from "@/lib/api-client";
 import { uploadAssetSmart } from "@/lib/upload-client";
+import { useIncrementalPreview } from "@/hooks/useIncrementalPreview";
 import { useStudioHealth } from "@/hooks/useStudioHealth";
 import { ReelProEditor } from "@/components/editor/ReelProEditor";
 import {
@@ -172,10 +173,20 @@ export function StudioDashboard() {
         ? "upload (ffmpeg)"
         : undefined;
 
+  const incrementalPreview = useIncrementalPreview({
+    assetId,
+    enabled: isServerPipeline,
+    sourceDurationSec,
+    reelEdit,
+    autoPeakZoom: toggles.autoPeakZoom,
+    onLog: appendLog,
+  });
+
   const previewVideoUrl = useMemo(() => {
     if (jobResult?.previewUrls?.reel) return jobResult.previewUrls.reel;
+    if (incrementalPreview.previewUrl) return incrementalPreview.previewUrl;
     return localVideoUrl;
-  }, [jobResult, localVideoUrl]);
+  }, [jobResult, incrementalPreview.previewUrl, localVideoUrl]);
 
   const editorEnabled = Boolean(file || previewVideoUrl);
 
@@ -206,6 +217,7 @@ export function StudioDashboard() {
       setServerPeakTimeSec(null);
       setVideoSourceDurationSec(0);
       setReelEdit(null);
+      incrementalPreview.clearPreview();
       if (!f) {
         appendLog("Upload cleared · select a sample or drop new media");
         return;
@@ -239,7 +251,7 @@ export function StudioDashboard() {
         }
       }
     },
-    [appendLog],
+    [appendLog, incrementalPreview],
   );
 
   const handleInvalidFile = useCallback(
@@ -452,6 +464,13 @@ export function StudioDashboard() {
             durationMismatch={resolvedSourceDuration.mismatch}
             durationMismatchDetail={durationMismatchDetail}
             exportsEditsToPipeline={isServerPipeline}
+            onQuickPreview={
+              isServerPipeline && assetId
+                ? () => void incrementalPreview.bakePreview()
+                : undefined
+            }
+            quickPreviewLoading={incrementalPreview.loading}
+            quickPreviewError={incrementalPreview.error}
             onEditChange={setReelEdit}
             onSeekPreview={(t) => setEditorSeekClipSec(t)}
           />
@@ -568,7 +587,8 @@ export function StudioDashboard() {
               liveAsmrPreview={
                 liveAsmrPreview &&
                 Boolean(previewVideoUrl) &&
-                !jobResult?.previewUrls?.reel
+                !jobResult?.previewUrls?.reel &&
+                !incrementalPreview.previewUrl
               }
               previewBypass={previewBypass}
               crackIntensity={crackIntensity}
