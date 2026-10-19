@@ -31,7 +31,7 @@ Ingest (MP4/MOV)
 ### Phase 1 — Foundation (done)
 
 - [x] Upload decode + envelope waveform
-- [x] Server peak scan (`/api/assets/:id/analyze`)
+- [x] Server peak scan (`GET /api/assets?assetId=&analyze=1`)
 - [x] EQ stage + SFX crack (ffmpeg `amix`)
 - [x] Preview audio unmute + scrubber
 - [x] Peak analytics + pipeline peak in result

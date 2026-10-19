@@ -1,36 +1,25 @@
-import type { JobStreamEvent } from "@/lib/contract/job";
-import { assertJobAccess } from "@/lib/server/access";
+import type { JobStreamEvent, JobResult } from "@/lib/contract/job";
 import { buildJobPreviewUrls } from "@/lib/server/job-artifacts";
 import { getJobLogs } from "@/lib/server/job-service";
-import type { JobResult } from "@/lib/contract/job";
 import { subscribeJob } from "@/lib/server/events";
 
 function encodeSse(event: JobStreamEvent) {
   return `data: ${JSON.stringify(event)}\n\n`;
 }
 
-export async function GET(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
-  const { id } = await context.params;
-  const access = assertJobAccess(request, id);
-  if ("error" in access && access.error) {
-    const status = access.error.status;
-    return new Response(status === 401 ? "Unauthorized" : "Forbidden", {
-      status,
-    });
-  }
-  if (!("job" in access)) {
-    return new Response("Forbidden", { status: 403 });
-  }
-  const job = access.job;
+type JobRow = {
+  status: string;
+  resultJson: string | null;
+  copyRevision: number | null;
+  error: string | null;
+};
 
+export function jobEventStreamResponse(jobId: string, job: JobRow) {
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
 
-      for (const log of getJobLogs(id)) {
+      for (const log of getJobLogs(jobId)) {
         controller.enqueue(
           encoder.encode(
             encodeSse({
@@ -43,7 +32,7 @@ export async function GET(
         );
       }
 
-      const unsubscribe = subscribeJob(id, (event) => {
+      const unsubscribe = subscribeJob(jobId, (event) => {
         controller.enqueue(encoder.encode(encodeSse(event)));
         if (event.type === "complete" || event.type === "error") {
           unsubscribe();
@@ -56,7 +45,7 @@ export async function GET(
           const parsed = JSON.parse(job.resultJson) as JobResult;
           const result: JobResult = {
             ...parsed,
-            previewUrls: await buildJobPreviewUrls(id),
+            previewUrls: await buildJobPreviewUrls(jobId),
           };
           controller.enqueue(
             encoder.encode(
