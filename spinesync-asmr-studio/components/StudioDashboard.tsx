@@ -41,7 +41,16 @@ export function StudioDashboard() {
       if (f) {
         setPresetId(null);
         appendLog(`Ingested: ${f.name}`);
+      } else {
+        appendLog("Upload cleared · select a sample or drop new media");
       }
+    },
+    [appendLog],
+  );
+
+  const handleInvalidFile = useCallback(
+    (fileName: string) => {
+      appendLog(`Rejected ingest: ${fileName} (MP4/MOV only)`);
     },
     [appendLog],
   );
@@ -118,6 +127,7 @@ export function StudioDashboard() {
               activePresetId={presetId}
               onFileSelect={handleFileSelect}
               onPresetSelect={handlePresetSelect}
+              onInvalidFile={handleInvalidFile}
             />
             <div className="glass-panel rounded-2xl p-4">
               <FocusSelector value={focus} onChange={handleFocusChange} />

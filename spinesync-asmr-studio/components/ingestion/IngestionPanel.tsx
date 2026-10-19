@@ -8,6 +8,7 @@ interface IngestionPanelProps {
   activePresetId: string | null;
   onFileSelect: (file: File | null) => void;
   onPresetSelect: (presetId: string) => void;
+  onInvalidFile?: (fileName: string) => void;
 }
 
 export function IngestionPanel({
@@ -15,10 +16,15 @@ export function IngestionPanel({
   activePresetId,
   onFileSelect,
   onPresetSelect,
+  onInvalidFile,
 }: IngestionPanelProps) {
   return (
     <div className="space-y-3">
-      <Dropzone file={file} onFileSelect={onFileSelect} />
+      <Dropzone
+        file={file}
+        onFileSelect={onFileSelect}
+        onInvalidFile={onInvalidFile}
+      />
       <SamplePresets activePresetId={activePresetId} onSelect={onPresetSelect} />
     </div>
   );
