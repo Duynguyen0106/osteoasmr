@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, FileJson, Film, ImageIcon } from "lucide-react";
+import { Download, FileJson, Film, ImageIcon, Music2 } from "lucide-react";
 import type { JobResult } from "@/lib/contract/job";
 
 interface JobExportsPanelProps {
@@ -27,7 +27,7 @@ export function JobExportsPanel({
 }: JobExportsPanelProps) {
   if (!pipelineComplete || !jobResult?.previewUrls) return null;
 
-  const { reel, thumb, captions, karaoke } = jobResult.previewUrls;
+  const { reel, thumb, captions, karaoke, audioEq } = jobResult.previewUrls;
 
   return (
     <div className="glass-panel rounded-2xl p-4">
@@ -37,8 +37,15 @@ export function JobExportsPanel({
       </h3>
       <div className="grid gap-2 sm:grid-cols-2">
         {reel && downloadLink(reel, "Reel MP4 (9:16)")}
+        {audioEq && downloadLink(audioEq, "ASMR audio stem (EQ wav)")}
         {thumb && downloadLink(thumb, "Peak thumbnail")}
         {captions && downloadLink(captions, "Captions VTT")}
+        {audioEq && (
+          <span className="flex items-center gap-2 px-1 text-[10px] text-slate-500 sm:col-span-2">
+            <Music2 className="h-3 w-3" aria-hidden />
+            Stem includes multiband EQ, optional crack/room, {jobResult.asmrProfile?.targetLufs ?? -14} LUFS normalize.
+          </span>
+        )}
         {karaoke && (
           <a
             href={karaoke}

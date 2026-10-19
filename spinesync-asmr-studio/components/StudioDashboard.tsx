@@ -45,6 +45,10 @@ export function StudioDashboard() {
     tiktokSubs: true,
   });
   const [liveAsmrPreview, setLiveAsmrPreview] = useState(true);
+  const [crackIntensity, setCrackIntensity] = useState(65);
+  const [roomTone, setRoomTone] = useState(false);
+  const [previewBypass, setPreviewBypass] = useState(false);
+  const [exportBypassSculpt, setExportBypassSculpt] = useState(false);
 
   const mock = usePipeline();
   const server = usePipelineServer({
@@ -205,6 +209,9 @@ export function StudioDashboard() {
         focus,
         sourceLabel: file?.name ?? preset.label,
         presetId,
+        crackIntensity,
+        roomTone,
+        bypassSculpt: exportBypassSculpt,
       });
       return;
     }
@@ -214,6 +221,9 @@ export function StudioDashboard() {
       focus,
       sourceLabel: file?.name ?? preset.label,
       presetId,
+      crackIntensity,
+      roomTone,
+      bypassSculpt: exportBypassSculpt,
     });
   }, [
     eqBoost,
@@ -222,6 +232,9 @@ export function StudioDashboard() {
     file,
     preset.label,
     presetId,
+    crackIntensity,
+    roomTone,
+    exportBypassSculpt,
     runFullPipeline,
     server,
   ]);
@@ -270,6 +283,14 @@ export function StudioDashboard() {
             <AsmrSoundProfileCard
               focus={focus}
               eqBoost={eqBoost}
+              crackIntensity={crackIntensity}
+              onCrackIntensityChange={setCrackIntensity}
+              roomTone={roomTone}
+              onRoomToneChange={setRoomTone}
+              previewBypass={previewBypass}
+              onPreviewBypassChange={setPreviewBypass}
+              exportBypassSculpt={exportBypassSculpt}
+              onExportBypassChange={setExportBypassSculpt}
               livePreview={liveAsmrPreview}
               onLivePreviewChange={setLiveAsmrPreview}
             />
@@ -293,7 +314,7 @@ export function StudioDashboard() {
 
           <div className="space-y-4 lg:col-span-7">
             <VerticalReelPlayer
-              key={`${previewVideoUrl ?? "sample"}-${preset.id}-${peakTimeSec}-${liveAsmrPreview}`}
+              key={`${previewVideoUrl ?? "sample"}-${preset.id}-${peakTimeSec}-${liveAsmrPreview}-${previewBypass}`}
               preset={preset}
               eqBoost={eqBoost}
               tiktokSubs={toggles.tiktokSubs}
@@ -307,7 +328,12 @@ export function StudioDashboard() {
               }
               audioDurationSec={sourceAudio.durationSec}
               focus={focus}
-              liveAsmrPreview={liveAsmrPreview && Boolean(previewVideoUrl) && !jobResult?.previewUrls?.reel}
+              liveAsmrPreview={
+                liveAsmrPreview &&
+                Boolean(previewVideoUrl) &&
+                !jobResult?.previewUrls?.reel
+              }
+              previewBypass={previewBypass}
               onRefreshMedia={
                 refreshJobMedia
                   ? () => {

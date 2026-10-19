@@ -11,7 +11,10 @@ type Graph = {
   video: HTMLVideoElement;
   ctx: AudioContext;
   gain: GainNode;
-  filter: BiquadFilterNode;
+  highpass: BiquadFilterNode;
+  peaking: BiquadFilterNode;
+  highshelf: BiquadFilterNode;
+  comp: DynamicsCompressorNode;
 };
 
 export function useLiveAsmrAudio(
@@ -22,6 +25,7 @@ export function useLiveAsmrAudio(
     soundOn: boolean;
     focus: FocusCategory;
     eqBoost: number;
+    bypassSculpt: boolean;
   },
 ) {
   const graphRef = useRef<Graph | null>(null);
@@ -39,33 +43,45 @@ export function useLiveAsmrAudio(
       }
       const ctx = new AudioContext();
       const source = ctx.createMediaElementSource(video);
-      const filter = ctx.createBiquadFilter();
-      filter.type = "peaking";
+      const highpass = ctx.createBiquadFilter();
+      highpass.type = "highpass";
+      highpass.frequency.value = 80;
+      const peaking = ctx.createBiquadFilter();
+      peaking.type = "peaking";
+      const highshelf = ctx.createBiquadFilter();
+      highshelf.type = "highshelf";
+      highshelf.frequency.value = 10_000;
       const comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -22;
       comp.ratio.value = 3;
       const gain = ctx.createGain();
-      source.connect(filter);
-      filter.connect(comp);
+      source.connect(highpass);
+      highpass.connect(peaking);
+      peaking.connect(highshelf);
+      highshelf.connect(comp);
       comp.connect(gain);
       gain.connect(ctx.destination);
-      graph = { video, ctx, gain, filter };
+      graph = { video, ctx, gain, highpass, peaking, highshelf, comp };
       graphRef.current = graph;
     }
 
     const profile = getAsmrProfile(options.focus);
-    graph.filter.frequency.value = profile.centerHz;
-    graph.filter.Q.value = profile.q;
-    graph.filter.gain.value = eqBoostToGainDb(options.eqBoost);
+    graph.peaking.frequency.value = profile.centerHz;
+    graph.peaking.Q.value = profile.q;
+
+    if (options.bypassSculpt) {
+      graph.peaking.gain.value = 0;
+      graph.highshelf.gain.value = 0;
+    } else {
+      graph.peaking.gain.value = eqBoostToGainDb(options.eqBoost);
+      graph.highshelf.gain.value = 2;
+    }
+
     graph.gain.gain.value = options.soundOn ? 1 : 0;
 
     if (options.soundOn && graph.ctx.state === "suspended") {
       void graph.ctx.resume();
     }
-
-    return () => {
-      /* keep graph for same video element */
-    };
   }, [
     videoRef,
     options.enabled,
@@ -73,6 +89,7 @@ export function useLiveAsmrAudio(
     options.soundOn,
     options.focus,
     options.eqBoost,
+    options.bypassSculpt,
   ]);
 
   useEffect(() => {

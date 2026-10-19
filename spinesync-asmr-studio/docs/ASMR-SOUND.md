@@ -43,14 +43,15 @@ Ingest (MP4/MOV)
 - [x] UI profile card + pipeline logs profile band
 - [x] `JobResult.asmrProfile` snapshot on complete
 
-### Phase 3 — Next (backlog)
+### Phase 3 — Delivery polish (done)
 
-- [ ] **Room tone bed** — subtle pink noise under voice (-36 LUFS)
-- [ ] **Multi-band** — low-cut rumble + presence + air shelf
-- [ ] **Crack designer** — intensity slider, second peak, sample library
-- [ ] **Loudness** — EBU R128 target (-14 LUFS) on export
-- [ ] **A/B preview** — bypass toggle (raw vs sculpted)
-- [ ] **Stem export** — separate `audio-eq.wav` download
+- [x] **Room tone bed** — pink noise mix (~0.035 vol) under voice
+- [x] **Multi-band** — 80 Hz HPF + focus peaking + 10 kHz shelf + compressor
+- [x] **Crack designer** — intensity slider; secondary transient @ ~55% of peak (≥45%)
+- [x] **Loudness** — ffmpeg `loudnorm` **-14 LUFS** on EQ stem
+- [x] **A/B preview** — bypass toggle (flat vs sculpted Web Audio)
+- [x] **Stem export** — `audio-eq.wav` download + S3 artifact sync
+- [ ] Sample library for cracks (Phase 4)
 
 ### Phase 4 — Pro (backlog)
 

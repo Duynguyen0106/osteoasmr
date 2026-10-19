@@ -54,4 +54,7 @@ export interface PipelineRunContext {
   focus: FocusCategory;
   sourceLabel: string;
   presetId?: string | null;
+  crackIntensity?: number;
+  roomTone?: boolean;
+  bypassSculpt?: boolean;
 }

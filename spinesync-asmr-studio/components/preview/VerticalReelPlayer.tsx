@@ -25,6 +25,7 @@ interface VerticalReelPlayerProps {
   audioDurationSec?: number;
   focus: FocusCategory;
   liveAsmrPreview?: boolean;
+  previewBypass?: boolean;
 }
 
 export function VerticalReelPlayer({
@@ -41,6 +42,7 @@ export function VerticalReelPlayer({
   audioDurationSec = 0,
   focus,
   liveAsmrPreview = false,
+  previewBypass = false,
 }: VerticalReelPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -67,6 +69,7 @@ export function VerticalReelPlayer({
     soundOn,
     focus,
     eqBoost,
+    bypassSculpt: previewBypass,
   });
 
   const durationSec =

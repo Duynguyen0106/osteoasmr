@@ -11,6 +11,7 @@ const MIME: Record<string, string> = {
   ".jpeg": "image/jpeg",
   ".vtt": "text/vtt",
   ".json": "application/json",
+  ".wav": "audio/wav",
 };
 
 export async function GET(

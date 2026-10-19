@@ -6,6 +6,7 @@ import type { PipelineStageId } from "@/lib/types";
 import type { CaptionSegment } from "./captions";
 import { fallbackCaptionSegments } from "./captions";
 import { presetHeadline, presetPeakDefaults } from "./copy";
+import { ASMR_TARGET_LUFS } from "@/lib/asmr-export";
 import { getAsmrProfile, eqBoostToGainDb } from "@/lib/asmr-profiles";
 import { renderEqAudio } from "./audio-eq";
 import {
@@ -101,6 +102,9 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
             focus: config.focus,
             eqBoost: config.eqBoost,
             sfxCrack: config.toggles.sfxCrack,
+            crackIntensity: config.crackIntensity ?? 65,
+            roomTone: config.roomTone ?? false,
+            bypassSculpt: config.bypassSculpt ?? false,
             peakTimeSec: peak.timeSec,
           });
         }
@@ -260,6 +264,10 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
         gainDb,
         eqBoost: config.eqBoost,
         sfxCrack: config.toggles.sfxCrack,
+        crackIntensity: config.crackIntensity ?? 65,
+        roomTone: config.roomTone ?? false,
+        bypassSculpt: config.bypassSculpt ?? false,
+        targetLufs: ASMR_TARGET_LUFS,
       },
       copy: jobCopy,
       captionSegments,

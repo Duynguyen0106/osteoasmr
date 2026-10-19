@@ -5,7 +5,13 @@ import { appBaseUrl } from "./config";
 import { signedMediaPath } from "./media-token";
 import { jobArtifactKey, getStorage } from "./storage";
 
-const ARTIFACT_FILES = ["reel.mp4", "thumb.jpg", "captions.vtt", "segments.json"] as const;
+const ARTIFACT_FILES = [
+  "reel.mp4",
+  "thumb.jpg",
+  "captions.vtt",
+  "segments.json",
+  "audio-eq.wav",
+] as const;
 
 export async function publishJobArtifactsToStorage(jobId: string, jobDirPath: string) {
   const storage = getStorage();
@@ -48,6 +54,7 @@ export async function buildJobPreviewUrls(
       thumb,
       captions: signedMediaPath(`jobs/${jobId}/captions.vtt`),
       karaoke: signedMediaPath(`jobs/${jobId}/segments.json`),
+      audioEq: signedMediaPath(`jobs/${jobId}/audio-eq.wav`),
     };
   }
 
@@ -56,6 +63,7 @@ export async function buildJobPreviewUrls(
     thumb: signedMediaPath(`jobs/${jobId}/thumb.jpg`),
     captions: signedMediaPath(`jobs/${jobId}/captions.vtt`),
     karaoke: signedMediaPath(`jobs/${jobId}/segments.json`),
+    audioEq: signedMediaPath(`jobs/${jobId}/audio-eq.wav`),
   };
 }
 

@@ -19,6 +19,9 @@ export const createJobBodySchema = z.object({
   focus: focusCategorySchema,
   eqBoost: z.number().min(0).max(100),
   toggles: processingTogglesSchema,
+  crackIntensity: z.number().min(0).max(100).default(65),
+  roomTone: z.boolean().default(false),
+  bypassSculpt: z.boolean().default(false),
   sourceLabel: z.string().min(1),
 });
 
@@ -63,6 +66,10 @@ export interface AsmrProfileSnapshot {
   gainDb: number;
   eqBoost: number;
   sfxCrack: boolean;
+  crackIntensity: number;
+  roomTone: boolean;
+  bypassSculpt: boolean;
+  targetLufs: number;
 }
 
 export interface JobResult {
@@ -81,6 +88,7 @@ export interface JobResult {
     thumb?: string;
     captions?: string;
     karaoke?: string;
+    audioEq?: string;
   };
 }
 
