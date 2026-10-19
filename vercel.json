@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rootDirectory": "spinesync-asmr-studio",
-  "installCommand": "npm ci && npm rebuild better-sqlite3",
-  "buildCommand": "npm run build",
+  "installCommand": "cd spinesync-asmr-studio && npm ci && npm rebuild better-sqlite3",
+  "buildCommand": "cd spinesync-asmr-studio && npm run build",
   "framework": "nextjs"
 }
