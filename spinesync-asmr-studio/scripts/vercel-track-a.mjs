@@ -85,6 +85,7 @@ const TRACK_A_KEYS = [
   "APP_BASE_URL",
   "SPINESYNC_DEFAULT_API_KEY",
   "SPINESYNC_REQUIRE_API_KEY",
+  "SPINESYNC_REQUIRE_API_KEY",
   "OPENAI_API_KEY",
   "AYRSHARE_API_KEY",
 ];
@@ -125,6 +126,8 @@ async function syncEnv(fileArg) {
       APP_BASE_URL: "https://spinesync-asmr-studio.vercel.app",
       NEXT_PUBLIC_PIPELINE_MODE: "server",
       SPINESYNC_DATA_ROOT: "/tmp/spinesync",
+      SPINESYNC_DEFAULT_API_KEY: randomBytes(24).toString("hex"),
+      SPINESYNC_REQUIRE_API_KEY: "true",
     });
   } else {
     throw new Error(

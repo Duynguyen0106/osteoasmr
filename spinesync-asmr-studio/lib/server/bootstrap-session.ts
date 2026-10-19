@@ -21,6 +21,8 @@ export async function bootstrapAuthSession(request: Request): Promise<{
   const headerKey = request.headers.get("x-spinesync-api-key");
   const apiKey = parsed.success ? parsed.data.apiKey?.trim() : undefined;
 
+  const envDefaultKey = process.env.SPINESYNC_DEFAULT_API_KEY?.trim();
+
   if (headerKey || apiKey) {
     const key = headerKey ?? apiKey!;
     const fromKey = resolveProjectIdOrNull(
@@ -31,10 +33,26 @@ export async function bootstrapAuthSession(request: Request): Promise<{
     }
     projectId = fromKey;
   } else if (requireApiKey()) {
-    return {
-      status: 401,
-      body: { error: "API key required to start session" },
-    };
+    if (envDefaultKey) {
+      const fromEnv = resolveProjectIdOrNull(
+        new Request(request.url, {
+          headers: { "x-spinesync-api-key": envDefaultKey },
+        }),
+      );
+      if (fromEnv) {
+        projectId = fromEnv;
+      } else {
+        return {
+          status: 401,
+          body: { error: "Invalid SPINESYNC_DEFAULT_API_KEY on server" },
+        };
+      }
+    } else {
+      return {
+        status: 401,
+        body: { error: "API key required to start session" },
+      };
+    }
   }
 
   return {
