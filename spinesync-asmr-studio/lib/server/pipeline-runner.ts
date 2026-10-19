@@ -45,6 +45,7 @@ import {
 import { brollForTrimmedExport } from "@/lib/reel-edit/broll";
 import { applyBrollOverlays } from "./broll-composite";
 import { segmentsToVtt } from "./captions";
+import { extractBrandedPeakThumbnail } from "./thumbnail-render";
 
 function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -330,23 +331,42 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
         }
       } else if (stageId === "thumbnail") {
         const input = (await fileExists(reelPath)) ? reelPath : sourcePath;
+        const headline = headlineForConfig(config);
         if (input && (await fileExists(input))) {
-          const duration = (await probeDurationSec(input)) ?? 8;
-          const ss = Math.min(peak.timeSec, Math.max(0, duration - 0.1));
-          await runFfmpeg([
-            "-ss",
-            String(ss),
-            "-i",
-            input,
-            "-frames:v",
-            "1",
-            thumbPath,
-          ]);
+          try {
+            await extractBrandedPeakThumbnail({
+              inputPath: input,
+              outputPath: thumbPath,
+              seekSec: peak.timeSec,
+              headline,
+            });
+            appendJobLog(
+              jobId,
+              `Branded 9:16 thumb @ 00:${peak.timeSec.toFixed(1)}s · contrast · "${headline.slice(0, 40)}${headline.length > 40 ? "…" : ""}"`,
+            );
+          } catch (err) {
+            const duration = (await probeDurationSec(input)) ?? 8;
+            const ss = Math.min(
+              peak.timeSec,
+              Math.max(0, duration - 0.1),
+            );
+            await runFfmpeg([
+              "-ss",
+              String(ss),
+              "-i",
+              input,
+              "-frames:v",
+              "1",
+              thumbPath,
+            ]);
+            appendJobLog(
+              jobId,
+              `Thumbnail fallback (raw frame) · ${err instanceof Error ? err.message : "branded render failed"}`,
+            );
+          }
+        } else {
+          appendJobLog(jobId, "Thumbnail skipped · no reel/source video on disk");
         }
-        appendJobLog(
-          jobId,
-          `Frame grab @ 00:${peak.timeSec.toFixed(1)}s · contrast boost · headline overlay`,
-        );
       } else if (stageId === "gpt") {
         copyRevision += 1;
         const excerpt = captionSegments.map((s) => s.text).join(" ").slice(0, 280);

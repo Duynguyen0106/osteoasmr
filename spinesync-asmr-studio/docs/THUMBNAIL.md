@@ -1,0 +1,23 @@
+# Thumbnail (Phase A)
+
+## Server pipeline
+
+After the 9:16 reel render, the **thumbnail** stage:
+
+1. Seeks to `peak.timeSec` on `reel.mp4` (fallback: trimmed source).
+2. Runs `extractBrandedPeakThumbnail` (`lib/server/thumbnail-render.ts`):
+   - Crop/scale to **1080×1920**
+   - Mild contrast/saturation (`eq`)
+   - **drawtext** headline from `headlineForConfig` (preset focus/preset id)
+3. Writes `thumb.jpg` next to other job artifacts (S3 when configured).
+
+On drawtext/ffmpeg failure, pipeline logs a **raw single-frame fallback**.
+
+## UI
+
+- **`ThumbnailPicker`**: 9:16 preview; baked JPG from job (no CSS headline overlay). Placeholder before pipeline shows preset headline mock only.
+- **`JobExportsPanel`**: download labeled **Branded peak thumbnail (9:16)**.
+
+## Not yet (later phases)
+
+- Editor `thumbTimeSec`, quick preview thumb API, GPT headline on image, social attach.
