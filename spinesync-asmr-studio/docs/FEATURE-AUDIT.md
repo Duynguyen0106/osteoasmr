@@ -30,3 +30,7 @@ Single-page **automation studio** for osteopathic 9:16 ASMR reels: ingest → sc
 - **Server:** `lib/server/source-trim.ts`, `edit` on `CreateJobBody`, pipeline trim + caption override
 
 See `docs/ASMR-SOUND.md` for audio chain details.
+
+## Before Phase 2
+
+See **`docs/PRE-PHASE-2-AUDIT.md`** for merge status, v1 editor verification, P0 gaps (caption/trim timebase, mock mode, markers), and recommended Phase 2 sequencing.
