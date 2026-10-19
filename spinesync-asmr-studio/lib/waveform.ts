@@ -1,8 +1,11 @@
 export const PEAK_TIME_SEC = 4.2;
 export const PEAK_WINDOW_SEC = 0.35;
 
-export function isNearPeak(playbackTimeSec: number): boolean {
-  return Math.abs(playbackTimeSec - PEAK_TIME_SEC) <= PEAK_WINDOW_SEC;
+export function isNearPeak(
+  playbackTimeSec: number,
+  peakTimeSec = PEAK_TIME_SEC,
+): boolean {
+  return Math.abs(playbackTimeSec - peakTimeSec) <= PEAK_WINDOW_SEC;
 }
 
 export function barHeight(
@@ -11,6 +14,7 @@ export function barHeight(
   timeSec: number,
   eqBoost: number,
   sfxCrack = false,
+  peakTimeSec = PEAK_TIME_SEC,
 ): number {
   const phase = timeSec * 8 + index * 0.35;
   const base = 0.25 + Math.abs(Math.sin(phase)) * 0.35;
@@ -21,7 +25,7 @@ export function barHeight(
     h += Math.abs(Math.sin(index * 2.8 + timeSec * 14)) * 0.12;
   }
 
-  if (isNearPeak(timeSec)) {
+  if (isNearPeak(timeSec, peakTimeSec)) {
     const peakBoost = 1 + eqBoost / 100;
     h *= 1.6 * peakBoost;
     if (sfxCrack) h *= 1.15;

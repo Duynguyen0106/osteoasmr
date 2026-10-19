@@ -6,11 +6,23 @@ import type { SamplePreset } from "@/lib/types";
 interface PeakSoundAnalyticsProps {
   preset: SamplePreset;
   eqBoost: number;
+  peakDb?: number;
+  freqGainDb?: number;
+  freqKhz?: number;
 }
 
-export function PeakSoundAnalytics({ preset, eqBoost }: PeakSoundAnalyticsProps) {
+export function PeakSoundAnalytics({
+  preset,
+  eqBoost,
+  peakDb,
+  freqGainDb,
+  freqKhz,
+}: PeakSoundAnalyticsProps) {
   const gain =
+    freqGainDb ??
     Math.round((preset.freqGainDb + eqBoost * 0.05) * 10) / 10;
+  const peak = peakDb ?? preset.peakDb;
+  const khz = freqKhz ?? preset.freqKhz;
 
   return (
     <div className="glass-panel rounded-2xl p-4">
@@ -21,12 +33,12 @@ export function PeakSoundAnalytics({ preset, eqBoost }: PeakSoundAnalyticsProps)
       <dl className="grid grid-cols-2 gap-3 text-xs">
         <div className="rounded-lg border border-slate-700/50 bg-slate-900/40 p-3">
           <dt className="text-slate-500">Crack Peak</dt>
-          <dd className="font-mono text-lg text-cyan-300">{preset.peakDb} dB</dd>
+          <dd className="font-mono text-lg text-cyan-300">{peak} dB</dd>
         </div>
         <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-3">
           <dt className="text-slate-500">Frequency Gain</dt>
           <dd className="font-mono text-lg text-purple-200">
-            +{gain} dB @ {preset.freqKhz}kHz
+            +{gain} dB @ {khz}kHz
           </dd>
         </div>
       </dl>

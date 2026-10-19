@@ -2,7 +2,6 @@
 
 import { Pause, Play } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PEAK_TIME_SEC } from "@/lib/waveform";
 import { SubtitleOverlay } from "./SubtitleOverlay";
 import { WaveformCanvas } from "./WaveformCanvas";
 import type { SamplePreset } from "@/lib/types";
@@ -16,6 +15,7 @@ interface VerticalReelPlayerProps {
   autoPeakZoom: boolean;
   sfxCrack: boolean;
   videoUrl: string | null;
+  peakTimeSec: number;
 }
 
 export function VerticalReelPlayer({
@@ -25,6 +25,7 @@ export function VerticalReelPlayer({
   autoPeakZoom,
   sfxCrack,
   videoUrl,
+  peakTimeSec,
 }: VerticalReelPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -49,11 +50,11 @@ export function VerticalReelPlayer({
         el.style.transform = "scale(1)";
         return;
       }
-      const nearPeak = Math.abs(timeSec - PEAK_TIME_SEC) <= 0.35;
+      const nearPeak = Math.abs(timeSec - peakTimeSec) <= 0.35;
       const playing = isPlayingRef.current;
       el.style.transform = nearPeak && playing ? "scale(1.06)" : "scale(1)";
     },
-    [autoPeakZoom],
+    [autoPeakZoom, peakTimeSec],
   );
 
   const getTimeSec = useCallback(() => timeRef.current, []);
@@ -174,6 +175,7 @@ export function VerticalReelPlayer({
             eqBoost={eqBoost}
             sfxCrack={sfxCrack}
             getTimeSec={getTimeSec}
+            peakTimeSec={peakTimeSec}
           />
 
           <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/90 to-transparent p-3 pt-8 text-center text-[10px] text-slate-200">
@@ -200,7 +202,8 @@ export function VerticalReelPlayer({
           </p>
         )}
         <p className="mt-2 text-center font-mono text-[10px] text-slate-500">
-          1080×1920 scaled preview · peak @ 00:04.2
+          1080×1920 scaled preview · peak @ 00:
+          {peakTimeSec.toFixed(1)}s
           {videoUrl ? " · live ingest" : ""}
         </p>
       </div>

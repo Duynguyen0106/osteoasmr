@@ -53,4 +53,5 @@ export interface PipelineRunContext {
   toggles: ProcessingToggles;
   focus: FocusCategory;
   sourceLabel: string;
+  presetId?: string | null;
 }

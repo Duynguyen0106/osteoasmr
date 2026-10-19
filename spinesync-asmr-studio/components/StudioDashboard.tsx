@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { PipelineBanner } from "@/components/layout/PipelineBanner";
 import { IngestionPanel } from "@/components/ingestion/IngestionPanel";
@@ -15,21 +15,29 @@ import { CopywriterTabs } from "@/components/copywriter/CopywriterTabs";
 import { SocialDispatchPanel } from "@/components/social/SocialDispatchPanel";
 import { useMediaObjectUrl } from "@/hooks/useMediaObjectUrl";
 import { usePipeline } from "@/hooks/usePipeline";
+import { usePipelineServer } from "@/hooks/usePipelineServer";
+import { isServerPipeline } from "@/lib/pipeline-mode";
 import { getActivePreset, getPresetById } from "@/lib/samples";
+import { PEAK_TIME_SEC } from "@/lib/waveform";
 import type { FocusCategory, ProcessingToggles } from "@/lib/types";
 
-export function StudioDashboard() {
-  const {
-    pipeline,
-    logs,
-    pipelineComplete,
-    copyRevision,
-    appendLog,
-    runFullPipeline,
-  } = usePipeline();
+async function uploadAsset(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch("/api/assets/upload", { method: "POST", body: form });
+  if (!res.ok) {
+    const err = (await res.json()) as { error?: string };
+    throw new Error(err.error ?? "Upload failed");
+  }
+  const data = (await res.json()) as { assetId: string };
+  return data.assetId;
+}
 
+export function StudioDashboard() {
   const [file, setFile] = useState<File | null>(null);
-  const videoUrl = useMediaObjectUrl(file);
+  const [assetId, setAssetId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const localVideoUrl = useMediaObjectUrl(file);
   const [presetId, setPresetId] = useState<string | null>("neck-crack");
   const [focus, setFocus] = useState<FocusCategory>("neck");
   const [eqBoost, setEqBoost] = useState(65);
@@ -39,16 +47,63 @@ export function StudioDashboard() {
     tiktokSubs: true,
   });
 
+  const mock = usePipeline();
+  const server = usePipelineServer({
+    assetId,
+    onNeedAsset: async () => {
+      if (file) {
+        const id = await uploadAsset(file);
+        setAssetId(id);
+        return id;
+      }
+      return null;
+    },
+  });
+
+  const active = isServerPipeline ? server : mock;
+  const {
+    pipeline,
+    logs,
+    pipelineComplete,
+    copyRevision,
+    appendLog,
+    runFullPipeline,
+  } = active;
+
+  const jobResult = isServerPipeline ? server.jobResult : null;
+  const serverCopy = isServerPipeline ? server.serverCopy : null;
+
   const preset = getActivePreset(presetId, focus);
+  const peakTimeSec = jobResult?.peak.timeSec ?? PEAK_TIME_SEC;
+
+  const previewVideoUrl = useMemo(() => {
+    if (jobResult?.previewUrls?.reel) return jobResult.previewUrls.reel;
+    return localVideoUrl;
+  }, [jobResult, localVideoUrl]);
 
   const handleFileSelect = useCallback(
-    (f: File | null) => {
+    async (f: File | null) => {
       setFile(f);
-      if (f) {
-        setPresetId(null);
-        appendLog(`Ingested: ${f.name}`);
-      } else {
+      setAssetId(null);
+      if (!f) {
         appendLog("Upload cleared · select a sample or drop new media");
+        return;
+      }
+      setPresetId(null);
+      appendLog(`Ingested: ${f.name}`);
+      if (isServerPipeline) {
+        setUploading(true);
+        try {
+          const id = await uploadAsset(f);
+          setAssetId(id);
+          appendLog(`Server asset registered · ${id.slice(0, 8)}…`);
+        } catch (err) {
+          appendLog(
+            `Upload failed: ${err instanceof Error ? err.message : "unknown"}`,
+          );
+        } finally {
+          setUploading(false);
+        }
       }
     },
     [appendLog],
@@ -66,6 +121,7 @@ export function StudioDashboard() {
       const p = getPresetById(id);
       setPresetId(id);
       setFile(null);
+      setAssetId(null);
       setFocus(p.focus);
       appendLog(`Loaded sample: ${p.label}`);
     },
@@ -95,6 +151,10 @@ export function StudioDashboard() {
 
   const handleSocialDispatch = useCallback(
     (action: "immediate" | "queue") => {
+      if (isServerPipeline) {
+        void server.publish(action);
+        return;
+      }
       if (action === "immediate") {
         appendLog(
           "Ayrshare · Post Immediately → IG, TikTok, YT Shorts, FB Reels",
@@ -103,20 +163,39 @@ export function StudioDashboard() {
         appendLog("Ayrshare · Queued for peak hour (18:00 local) · 4 channels");
       }
     },
-    [appendLog],
+    [appendLog, server],
   );
 
-  // Adaptive focus profile counts as a valid source when no preset/file is selected.
-  const canRunPipeline = Boolean(file || presetId || focus);
+  const canRunPipeline =
+    Boolean(file || presetId || focus) && !uploading && !pipeline.running;
 
   const handleRunPipeline = useCallback(() => {
+    if (isServerPipeline) {
+      void server.runFullPipeline({
+        eqBoost,
+        toggles,
+        focus,
+        sourceLabel: file?.name ?? preset.label,
+        presetId,
+      });
+      return;
+    }
     runFullPipeline({
       eqBoost,
       toggles,
       focus,
       sourceLabel: file?.name ?? preset.label,
     });
-  }, [runFullPipeline, eqBoost, toggles, focus, file, preset.label]);
+  }, [
+    eqBoost,
+    toggles,
+    focus,
+    file,
+    preset.label,
+    presetId,
+    runFullPipeline,
+    server,
+  ]);
 
   return (
     <div className="relative min-h-screen pb-12">
@@ -125,6 +204,11 @@ export function StudioDashboard() {
         aria-hidden
       />
       <Header />
+      {isServerPipeline && (
+        <p className="relative mx-auto max-w-7xl px-4 pt-2 text-center text-[10px] uppercase tracking-widest text-emerald-400/90 sm:px-6">
+          Server pipeline · SQLite + ffmpeg · SSE logs
+        </p>
+      )}
       <main className="relative mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6">
         <PipelineBanner
           progress={pipeline.progress}
@@ -140,7 +224,7 @@ export function StudioDashboard() {
             <IngestionPanel
               file={file}
               activePresetId={presetId}
-              onFileSelect={handleFileSelect}
+              onFileSelect={(f) => void handleFileSelect(f)}
               onPresetSelect={handlePresetSelect}
               onInvalidFile={handleInvalidFile}
             />
@@ -154,7 +238,7 @@ export function StudioDashboard() {
               onToggle={handleToggle}
             />
             <RunPipelineButton
-              running={pipeline.running}
+              running={pipeline.running || uploading}
               disabled={!canRunPipeline}
               onRun={handleRunPipeline}
             />
@@ -166,22 +250,38 @@ export function StudioDashboard() {
 
           <div className="space-y-4 lg:col-span-7">
             <VerticalReelPlayer
-              key={`${videoUrl ?? "sample"}-${preset.id}`}
+              key={`${previewVideoUrl ?? "sample"}-${preset.id}-${peakTimeSec}`}
               preset={preset}
               eqBoost={eqBoost}
               tiktokSubs={toggles.tiktokSubs}
               autoPeakZoom={toggles.autoPeakZoom}
               sfxCrack={toggles.sfxCrack}
-              videoUrl={videoUrl}
+              videoUrl={previewVideoUrl}
+              peakTimeSec={peakTimeSec}
             />
             <div className="grid gap-4 md:grid-cols-2">
-              <PeakSoundAnalytics preset={preset} eqBoost={eqBoost} />
-              <ThumbnailPicker preset={preset} eqBoost={eqBoost} />
+              <PeakSoundAnalytics
+                preset={preset}
+                eqBoost={eqBoost}
+                peakDb={jobResult?.peak.peakDb}
+                freqGainDb={jobResult?.peak.freqGainDb}
+                freqKhz={jobResult?.peak.freqKhz}
+              />
+              <ThumbnailPicker
+                preset={preset}
+                eqBoost={eqBoost}
+                peakTimeSec={peakTimeSec}
+                peakDb={jobResult?.peak.peakDb}
+                freqGainDb={jobResult?.peak.freqGainDb}
+                freqKhz={jobResult?.peak.freqKhz}
+                thumbUrl={jobResult?.previewUrls?.thumb ?? null}
+              />
             </div>
             <CopywriterTabs
               preset={preset}
               eqBoost={eqBoost}
               copyRevision={copyRevision}
+              serverCopy={serverCopy}
             />
           </div>
         </div>

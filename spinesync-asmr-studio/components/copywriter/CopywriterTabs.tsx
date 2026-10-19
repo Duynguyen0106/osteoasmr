@@ -7,12 +7,14 @@ import {
   buildInstagramCopy,
   buildYoutubeCopy,
 } from "@/lib/samples";
+import type { JobCopyResult } from "@/lib/contract/job";
 import type { CopyTab, SamplePreset } from "@/lib/types";
 
 interface CopywriterTabsProps {
   preset: SamplePreset;
   eqBoost: number;
   copyRevision: number;
+  serverCopy?: JobCopyResult | null;
 }
 
 const TABS: { id: CopyTab; label: string }[] = [
@@ -25,6 +27,7 @@ export function CopywriterTabs({
   preset,
   eqBoost,
   copyRevision,
+  serverCopy,
 }: CopywriterTabsProps) {
   const [tab, setTab] = useState<CopyTab>("instagram");
   const [copied, setCopied] = useState(false);
@@ -35,12 +38,20 @@ export function CopywriterTabs({
       ? `\n\n— GPT-4o run #${copyRevision} · optimized for ${tab === "youtube" ? "Shorts" : "Reels"}`
       : "";
 
-  const copyText =
-    (tab === "instagram"
-      ? buildInstagramCopy(preset, eqBoost)
-      : tab === "youtube"
-        ? buildYoutubeCopy(preset)
-        : DEFAULT_HASHTAGS) + generatedSuffix;
+  const baseCopy =
+    serverCopy && copyRevision > 0
+      ? tab === "instagram"
+        ? serverCopy.instagram
+        : tab === "youtube"
+          ? serverCopy.youtube
+          : serverCopy.hashtags
+      : tab === "instagram"
+        ? buildInstagramCopy(preset, eqBoost)
+        : tab === "youtube"
+          ? buildYoutubeCopy(preset)
+          : DEFAULT_HASHTAGS;
+
+  const copyText = baseCopy + generatedSuffix;
 
   const handleCopy = async () => {
     setCopyError(null);

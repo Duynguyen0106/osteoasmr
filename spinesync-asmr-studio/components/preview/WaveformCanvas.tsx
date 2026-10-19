@@ -7,6 +7,7 @@ interface WaveformCanvasProps {
   eqBoost: number;
   sfxCrack: boolean;
   getTimeSec: () => number;
+  peakTimeSec: number;
 }
 
 export function WaveformCanvas({
@@ -14,8 +15,15 @@ export function WaveformCanvas({
   eqBoost,
   sfxCrack,
   getTimeSec,
+  peakTimeSec,
 }: WaveformCanvasProps) {
-  const canvasRef = useWaveformCanvas(isPlaying, eqBoost, sfxCrack, getTimeSec);
+  const canvasRef = useWaveformCanvas(
+    isPlaying,
+    eqBoost,
+    sfxCrack,
+    getTimeSec,
+    peakTimeSec,
+  );
 
   return (
     <canvas
