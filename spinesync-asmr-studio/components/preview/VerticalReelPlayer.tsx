@@ -8,6 +8,8 @@ import { SubtitleOverlay } from "./SubtitleOverlay";
 import { WaveformCanvas } from "./WaveformCanvas";
 import { useLiveAsmrAudio } from "@/hooks/useLiveAsmrAudio";
 import type { CrackSampleId } from "@/lib/crack-samples";
+import type { ReelEditState } from "@/lib/contract/reel-edit";
+import { clipDurationSec, timelineToSourceTime } from "@/lib/reel-edit/normalize";
 import type { FocusCategory, SamplePreset } from "@/lib/types";
 
 const MOCK_DURATION_SEC = 12;
@@ -29,6 +31,8 @@ interface VerticalReelPlayerProps {
   previewBypass?: boolean;
   crackIntensity?: number;
   crackSampleId?: CrackSampleId;
+  reelEdit?: ReelEditState | null;
+  previewSeekClipSec?: number | null;
 }
 
 export function VerticalReelPlayer({
@@ -48,6 +52,8 @@ export function VerticalReelPlayer({
   previewBypass = false,
   crackIntensity = 65,
   crackSampleId = "syn-bright",
+  reelEdit = null,
+  previewSeekClipSec = null,
 }: VerticalReelPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -69,12 +75,20 @@ export function VerticalReelPlayer({
   const [videoDurationSec, setVideoDurationSec] = useState(0);
   const hasKaraoke = Boolean(captionSegments?.length);
 
-  const durationSec =
+  const rawDurationSec =
     videoUrl && videoDurationSec > 0
       ? videoDurationSec
       : audioDurationSec > 0
         ? audioDurationSec
         : MOCK_DURATION_SEC;
+
+  const durationSec = reelEdit
+    ? clipDurationSec(reelEdit)
+    : rawDurationSec;
+
+  const displayPeakSec = reelEdit
+    ? (reelEdit.peakTimeSec ?? Math.max(0, peakTimeSec - reelEdit.trimInSec))
+    : peakTimeSec;
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
@@ -88,11 +102,11 @@ export function VerticalReelPlayer({
         el.style.transform = "scale(1)";
         return;
       }
-      const nearPeak = Math.abs(timeSec - peakTimeSec) <= 0.35;
+      const nearPeak = Math.abs(timeSec - displayPeakSec) <= 0.35;
       const playing = isPlayingRef.current;
       el.style.transform = nearPeak && playing ? "scale(1.06)" : "scale(1)";
     },
-    [autoPeakZoom, peakTimeSec],
+    [autoPeakZoom, displayPeakSec],
   );
 
   const getTimeSec = useCallback(() => timeRef.current, []);
@@ -107,7 +121,7 @@ export function VerticalReelPlayer({
     sfxCrackPreview: sfxCrack,
     crackIntensity,
     crackSampleId,
-    peakTimeSec,
+    peakTimeSec: displayPeakSec,
     isPlaying,
     getTimeSec,
   });
@@ -146,10 +160,13 @@ export function VerticalReelPlayer({
   const handleTimeUpdate = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    timeRef.current = video.currentTime;
-    if (hasKaraoke) setDisplayTimeSec(video.currentTime);
-    applyPeakZoom(video.currentTime);
-  }, [applyPeakZoom, hasKaraoke]);
+    const clipT = reelEdit
+      ? Math.max(0, video.currentTime - reelEdit.trimInSec)
+      : video.currentTime;
+    timeRef.current = clipT;
+    if (hasKaraoke) setDisplayTimeSec(clipT);
+    applyPeakZoom(clipT);
+  }, [applyPeakZoom, hasKaraoke, reelEdit]);
 
   const applySoundToVideo = useCallback(
     (video: HTMLVideoElement, enabled: boolean) => {
@@ -215,13 +232,21 @@ export function VerticalReelPlayer({
       applyPeakZoom(clamped);
       const video = videoRef.current;
       if (videoUrl && video) {
-        video.currentTime = clamped;
+        video.currentTime = reelEdit
+          ? timelineToSourceTime(reelEdit, clamped)
+          : clamped;
         return;
       }
       mockOffsetRef.current = clamped;
     },
-    [durationSec, videoUrl, applyPeakZoom],
+    [durationSec, videoUrl, applyPeakZoom, reelEdit],
   );
+
+  useEffect(() => {
+    if (previewSeekClipSec == null) return;
+    const t = previewSeekClipSec;
+    queueMicrotask(() => handleSeek(t));
+  }, [previewSeekClipSec, handleSeek]);
 
   const handleLoadedMetadata = useCallback(() => {
     const video = videoRef.current;
@@ -300,7 +325,7 @@ export function VerticalReelPlayer({
             eqBoost={eqBoost}
             sfxCrack={sfxCrack}
             getTimeSec={getTimeSec}
-            peakTimeSec={peakTimeSec}
+            peakTimeSec={displayPeakSec}
             audioEnvelope={audioEnvelope}
             audioDurationSec={audioDurationSec}
           />
@@ -342,7 +367,7 @@ export function VerticalReelPlayer({
         <ReelScrubber
           durationSec={durationSec}
           currentTimeSec={displayTimeSec}
-          peakTimeSec={peakTimeSec}
+          peakTimeSec={displayPeakSec}
           onSeek={handleSeek}
         />
         {playError && (
@@ -352,7 +377,7 @@ export function VerticalReelPlayer({
         )}
         <p className="mt-2 text-center font-mono text-[10px] text-slate-500">
           1080×1920 scaled preview · peak @ 00:
-          {peakTimeSec.toFixed(1)}s
+          {displayPeakSec.toFixed(1)}s
           {videoUrl ? " · live ingest" : ""}
           {videoUrl && soundOn ? " · audio on" : videoUrl ? " · muted" : ""}
         </p>

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SpineSync ASMR Studio v2.4",
+  title: "SpineSync ASMR Studio v2.5",
   description: "Osteopathic video automation — ASMR pipeline studio",
 };
 

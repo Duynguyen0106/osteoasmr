@@ -35,6 +35,14 @@ import { useSourceAudioProfile } from "@/hooks/useSourceAudioProfile";
 import { spinesyncFetch } from "@/lib/api-client";
 import { uploadAssetSmart } from "@/lib/upload-client";
 import { useStudioHealth } from "@/hooks/useStudioHealth";
+import { ReelProEditor } from "@/components/editor/ReelProEditor";
+import {
+  StudioViewTabs,
+  type StudioView,
+} from "@/components/layout/StudioViewTabs";
+import type { ReelEditState } from "@/lib/contract/reel-edit";
+import { defaultReelEdit } from "@/lib/contract/reel-edit";
+import { normalizeReelEdit } from "@/lib/reel-edit/normalize";
 
 export function StudioDashboard() {
   const [file, setFile] = useState<File | null>(null);
@@ -61,6 +69,9 @@ export function StudioDashboard() {
   const [previewBypass, setPreviewBypass] = useState(false);
   const [exportBypassSculpt, setExportBypassSculpt] = useState(false);
   const [crackSampleId, setCrackSampleId] = useState<CrackSampleId>("syn-bright");
+  const [studioView, setStudioView] = useState<StudioView>("pipeline");
+  const [reelEdit, setReelEdit] = useState<ReelEditState | null>(null);
+  const [editorSeekClipSec, setEditorSeekClipSec] = useState<number | null>(null);
 
   const mock = usePipeline();
   const server = usePipelineServer({
@@ -98,6 +109,13 @@ export function StudioDashboard() {
     : undefined;
 
   const preset = getActivePreset(presetId, focus);
+  const sourceDurationSec =
+    sourceAudio.durationSec > 0
+      ? sourceAudio.durationSec
+      : jobResult?.peak.timeSec
+        ? jobResult.peak.timeSec * 2
+        : 12;
+
   const peakTimeSec =
     jobResult?.peak.timeSec ??
     serverPeakTimeSec ??
@@ -115,6 +133,8 @@ export function StudioDashboard() {
     if (jobResult?.previewUrls?.reel) return jobResult.previewUrls.reel;
     return localVideoUrl;
   }, [jobResult, localVideoUrl]);
+
+  const editorEnabled = Boolean(file || previewVideoUrl);
 
   const handleFileSelect = useCallback(
     async (f: File | null) => {
@@ -251,6 +271,9 @@ export function StudioDashboard() {
         roomTone,
         bypassSculpt: exportBypassSculpt,
         crackSampleId,
+        edit:
+          reelEdit ??
+          normalizeReelEdit(defaultReelEdit(sourceDurationSec), sourceDurationSec),
       });
       return;
     }
@@ -278,6 +301,8 @@ export function StudioDashboard() {
     crackSampleId,
     runFullPipeline,
     server,
+    reelEdit,
+    sourceDurationSec,
   ]);
 
   const applyAsmrPreset = useCallback((next: AsmrStudioSettings) => {
@@ -326,6 +351,11 @@ export function StudioDashboard() {
         aria-hidden
       />
       <Header />
+      <StudioViewTabs
+        view={studioView}
+        onChange={setStudioView}
+        editorEnabled={editorEnabled}
+      />
       <StudioCapabilityBanner health={studioHealth} healthError={healthError} />
       {isServerPipeline && studioHealth?.hosting?.pipelineReady && (
         <p className="relative mx-auto max-w-7xl px-4 pt-1 text-center text-[10px] uppercase tracking-widest text-emerald-400/90 sm:px-6">
@@ -333,6 +363,19 @@ export function StudioDashboard() {
         </p>
       )}
       <main className="relative mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6">
+        {studioView === "editor" && editorEnabled && (
+          <ReelProEditor
+            key={`editor-${sourceDurationSec}-${jobResult?.captionSegments?.length ?? 0}`}
+            sourceDurationSec={sourceDurationSec}
+            peakTimeSec={peakTimeSec}
+            captionSegments={jobResult?.captionSegments}
+            audioEnvelope={
+              sourceAudio.envelope.length ? sourceAudio.envelope : null
+            }
+            onEditChange={setReelEdit}
+            onSeekPreview={(t) => setEditorSeekClipSec(t)}
+          />
+        )}
         <PipelineBanner
           progress={pipeline.progress}
           stages={pipeline.stages}
@@ -412,7 +455,7 @@ export function StudioDashboard() {
 
           <div className="space-y-4 lg:col-span-7">
             <VerticalReelPlayer
-              key={`${previewVideoUrl ?? "sample"}-${preset.id}-${peakTimeSec}-${liveAsmrPreview}-${previewBypass}`}
+              key={`${previewVideoUrl ?? "sample"}-${preset.id}-${peakTimeSec}-${liveAsmrPreview}-${previewBypass}-${studioView}`}
               preset={preset}
               eqBoost={eqBoost}
               tiktokSubs={toggles.tiktokSubs}
@@ -434,6 +477,8 @@ export function StudioDashboard() {
               previewBypass={previewBypass}
               crackIntensity={crackIntensity}
               crackSampleId={crackSampleId}
+              reelEdit={studioView === "editor" ? reelEdit : null}
+              previewSeekClipSec={editorSeekClipSec}
               onRefreshMedia={
                 refreshJobMedia
                   ? () => {

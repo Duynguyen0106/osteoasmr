@@ -35,6 +35,13 @@ import { jobDir } from "./paths";
 import { buildJobPreviewUrls, publishJobArtifactsToStorage } from "./job-artifacts";
 import { renderReel916 } from "./render";
 import { renderRemotionLocal } from "./remotion-render";
+import { defaultReelEdit } from "@/lib/contract/reel-edit";
+import { normalizeReelEdit } from "@/lib/reel-edit/normalize";
+import {
+  materializeTrimmedSource,
+  trimmedSourcePath,
+} from "./source-trim";
+import { segmentsToVtt } from "./captions";
 
 function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -75,13 +82,43 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
   );
 
   const asset = config.assetId ? getAssetById(config.assetId) : undefined;
-  const sourcePath = asset
+  let sourcePath = asset
     ? await materializeAssetLocalPath({
         storagePath: asset.storagePath,
         storageKey: asset.storageKey,
         storageDriver: asset.storageDriver,
       })
     : undefined;
+
+  const rawDuration =
+    sourcePath && (await fileExists(sourcePath))
+      ? (await probeDurationSec(sourcePath)) ?? 60
+      : 60;
+  const edit = normalizeReelEdit(
+    config.edit ?? defaultReelEdit(rawDuration),
+    rawDuration,
+  );
+  if (sourcePath && (await fileExists(sourcePath))) {
+    const trimOut = edit.trimOutSec ?? rawDuration;
+    if (edit.trimInSec > 0.01 || trimOut < rawDuration - 0.05) {
+      appendJobLog(
+        jobId,
+        `Reel edit · trim ${edit.trimInSec.toFixed(2)}s → ${trimOut.toFixed(2)}s (${(trimOut - edit.trimInSec).toFixed(2)}s clip)`,
+      );
+      const trimmed = await materializeTrimmedSource({
+        sourcePath,
+        outputPath: trimmedSourcePath(dir),
+        edit,
+      });
+      if (trimmed.trimmed) sourcePath = trimmed.path;
+    }
+    if (edit.peakTimeSec != null) {
+      appendJobLog(
+        jobId,
+        `Reel edit · manual peak @ ${edit.peakTimeSec.toFixed(2)}s on timeline`,
+      );
+    }
+  }
   const defaults = presetPeakDefaults(config.presetId, config.focus);
   const gainDb = eqBoostToGainDb(config.eqBoost);
   const asmrProfileMeta = getAsmrProfile(config.focus);
@@ -116,7 +153,8 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
 
       if (stageId === "eq") {
         if (sourcePath && (await fileExists(sourcePath))) {
-          peak.timeSec = await detectPeakTimeSec(sourcePath, 4.2);
+          const autoPeak = await detectPeakTimeSec(sourcePath, 4.2);
+          peak.timeSec = edit.peakTimeSec ?? autoPeak;
           peak.peakDb = -1.2;
           peak.freqGainDb = defaults.freqGainDb + gainDb * 0.4;
 
@@ -143,7 +181,19 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
         );
       } else if (stageId === "whisper") {
         const whisperAudio = path.join(dir, "whisper.mp3");
-        if (sourcePath && (await fileExists(sourcePath))) {
+        if (edit.captions?.length) {
+          captionSegments = edit.captions;
+          const vtt = segmentsToVtt(captionSegments);
+          await fs.promises.writeFile(vttPath, vtt);
+          await fs.promises.writeFile(
+            segmentsPath,
+            JSON.stringify(captionSegments, null, 2),
+          );
+          appendJobLog(
+            jobId,
+            `Reel editor · ${captionSegments.length} caption segments (Whisper skipped)`,
+          );
+        } else if (sourcePath && (await fileExists(sourcePath))) {
           await prepareWhisperAudio(sourcePath, whisperAudio, eqAudioPath);
           const { segments, vtt, provider } = await transcribeWhisper(whisperAudio);
           captionSegments = segments;
@@ -199,6 +249,7 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
               burnCaptions: config.toggles.tiktokSubs,
               peakTimeSec: peak.timeSec,
               autoPeakZoom: config.toggles.autoPeakZoom,
+              zoomIntensity: edit.zoomIntensity,
             });
             appendJobLog(
               jobId,
