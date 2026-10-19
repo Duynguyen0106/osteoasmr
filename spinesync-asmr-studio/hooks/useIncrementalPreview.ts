@@ -67,10 +67,10 @@ export function useIncrementalPreview(options: {
     setLoading(true);
     setError(null);
     try {
-      const res = await spinesyncFetch("/api/preview/reel", {
+      const res = await spinesyncFetch("/api/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(previewBody()),
+        body: JSON.stringify({ ...previewBody(), kind: "reel" }),
       });
       if (!res.ok) throw new Error(await parsePreviewError(res));
       const data = (await res.json()) as {
@@ -99,11 +99,12 @@ export function useIncrementalPreview(options: {
     setThumbLoading(true);
     setThumbError(null);
     try {
-      const res = await spinesyncFetch("/api/preview/thumb", {
+      const res = await spinesyncFetch("/api/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...previewBody(),
+          kind: "thumb",
           headline: headline.trim() || "SPINESYNC ASMR",
         }),
       });

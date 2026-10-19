@@ -9,10 +9,11 @@ export async function uploadAssetSmart(file: File): Promise<string> {
   };
 
   if (info.storage?.driver === "s3" && info.storage?.presign) {
-    const presignRes = await spinesyncFetch("/api/assets/presign", {
+    const presignRes = await spinesyncFetch("/api/assets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        action: "presign",
         filename: file.name,
         mime: file.type || "video/mp4",
         bytes: file.size,
@@ -34,10 +35,10 @@ export async function uploadAssetSmart(file: File): Promise<string> {
     });
     if (!put.ok) throw new Error("S3 upload failed");
 
-    const complete = await spinesyncFetch("/api/assets/complete", {
+    const complete = await spinesyncFetch("/api/assets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ assetId: presign.assetId }),
+      body: JSON.stringify({ action: "complete", assetId: presign.assetId }),
     });
     if (!complete.ok) throw new Error("Asset complete failed");
     return presign.assetId;
@@ -45,7 +46,7 @@ export async function uploadAssetSmart(file: File): Promise<string> {
 
   const form = new FormData();
   form.append("file", file);
-  const res = await spinesyncFetch("/api/assets/upload", { method: "POST", body: form });
+  const res = await spinesyncFetch("/api/assets", { method: "POST", body: form });
   if (!res.ok) {
     const err = (await res.json()) as { error?: string };
     throw new Error(err.error ?? "Upload failed");

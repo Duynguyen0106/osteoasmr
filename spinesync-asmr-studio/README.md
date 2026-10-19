@@ -24,15 +24,14 @@ Copy `.env.example` to `.env.local` for server mode. Requires **ffmpeg** on `PAT
 | Page | `/editor` | Reel Pro Editor (URL-synced tab) |
 | Page | `/jobs/:id/edit` | Deep link: load job + editor |
 | GET | `/api/health` | ffmpeg + storage status |
-| POST | `/api/assets/upload` | Multipart `file` → `{ assetId }` |
+| POST | `/api/assets` | Multipart upload, or JSON `action`: `presign` \| `complete` |
 | GET | `/api/assets/:id/analyze` | ffmpeg peak time + duration (server mode) |
 | GET | `/api/jobs` | List recent jobs for current project |
-| POST | `/api/preview/reel` | Quick 9:16 ffmpeg preview (trim/zoom; skips full pipeline) |
-| POST | `/api/preview/thumb` | Quick branded 9:16 JPG from cached quick reel + `thumbTimeSec` |
+| POST | `/api/preview` | Quick reel or thumb (`kind`: `reel` \| `thumb`) |
 | POST | `/api/jobs` | Create job (JSON body, see `lib/contract/job.ts`) |
 | GET | `/api/jobs/:id` | Status, stages, logs, result |
 | GET | `/api/jobs/:id/stream` | SSE log/stage/complete events |
-| POST | `/api/jobs/:id/publish` | Ayrshare dispatch (reel URL + YouTube/X thumb when configured) |
+| POST | `/api/jobs/:id` | Ayrshare publish (completed jobs; publish body) |
 | GET | `/api/media/*` | Serve job artifacts (reel, thumb, etc.) |
 
 Artifacts live under `.data/uploads/` (gitignored).
@@ -91,8 +90,8 @@ ASMR sound architecture and roadmap: [`docs/ASMR-SOUND.md`](docs/ASMR-SOUND.md).
 
 | Feature | Env / usage |
 |---------|-------------|
-| **S3 presigned upload** | `STORAGE_DRIVER=s3`, `AWS_S3_BUCKET`, `AWS_REGION` → `POST /api/assets/presign` + `complete` |
-| **Direct upload** | Default local multipart `POST /api/assets/upload` |
+| **S3 presigned upload** | `STORAGE_DRIVER=s3`, … → `POST /api/assets` JSON `presign` + `complete` |
+| **Direct upload** | Multipart `POST /api/assets` |
 | **CloudFront URLs** | `AWS_CLOUDFRONT_DOMAIN` for readable media links (Ayrshare / CDN) |
 | **Worker queue** | `JOB_EXECUTOR=worker` + `npm run worker:pipeline` (API enqueues only) |
 | **Remotion local render** | `REMOTION_RENDER=local` uses `remotion/SpineSyncReel916` before ffmpeg fallback |

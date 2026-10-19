@@ -27,14 +27,14 @@ On drawtext/ffmpeg failure, pipeline logs a **raw single-frame fallback**.
 
 ## Phase C — quick thumbnail API
 
-- **`POST /api/preview/thumb`** — same body as `/api/preview/reel` plus optional `headline` (dashboard sends GPT/preset headline).
+- **`POST /api/preview`** with `kind: "thumb"` — same body as reel preview plus optional `headline`.
 - **`buildIncrementalThumbPreview`** reuses the cached quick reel in `previews/{cacheId}/reel.mp4`, then bakes `thumb-{headlineHash}.jpg` beside it.
 - Editor **Quick thumbnail** button and **`useIncrementalPreview.bakeThumb`**; dashboard prefers pipeline `thumb` URL, then quick preview URL.
 
 ## Phase D — GPT headline + Ayrshare thumb
 
 - Pipeline stage order: **gpt → thumbnail** so burn-in matches copywriter headline.
-- **`POST /api/jobs/:id/publish`**: Ayrshare payload includes `isVideo`, `youTubeOptions.title` + `youTubeOptions.thumbNail`, and `twitterOptions.thumbNail` when a public HTTPS thumb URL resolves (`publishThumbUrlForJob`).
+- **`POST /api/jobs/:id`** (publish body): Ayrshare payload includes `isVideo`, `youTubeOptions.title` + `youTubeOptions.thumbNail`, and `twitterOptions.thumbNail` when a public HTTPS thumb URL resolves (`publishThumbUrlForJob`).
 
 ## Not yet
 
