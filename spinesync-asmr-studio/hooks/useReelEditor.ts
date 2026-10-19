@@ -8,6 +8,7 @@ import {
   type ReelMarker,
 } from "@/lib/contract/reel-edit";
 import { importCaptionsForEditor } from "@/lib/reel-edit/captions";
+import { clampCaptionRange } from "@/lib/reel-edit/caption-timing";
 import { clipDurationSec, normalizeReelEdit } from "@/lib/reel-edit/normalize";
 
 const MAX_UNDO = 24;
@@ -152,6 +153,35 @@ export function useReelEditor(options: {
     [commit, edit],
   );
 
+  const updateCaptionTiming = useCallback(
+    (index: number, start: number, end: number) => {
+      if (!edit.captions) return;
+      const { start: s, end: e } = clampCaptionRange(start, end, dur);
+      const captions = edit.captions
+        .map((c, i) => (i === index ? { ...c, start: s, end: e } : c))
+        .sort((a, b) => a.start - b.start);
+      commit({ ...edit, captions });
+    },
+    [commit, edit, dur],
+  );
+
+  const addCaptionAtPlayhead = useCallback(
+    (text = "New caption") => {
+      const sourceStart = edit.trimInSec + playheadSec;
+      const { start, end } = clampCaptionRange(
+        sourceStart,
+        sourceStart + 1.2,
+        dur,
+      );
+      const segment = { start, end, text };
+      const captions = [...(edit.captions ?? []), segment].sort(
+        (a, b) => a.start - b.start,
+      );
+      commit({ ...edit, captions });
+    },
+    [commit, edit, dur, playheadSec],
+  );
+
   const clipDuration = clipDurationSec(edit);
   const peakDisplay = edit.peakTimeSec ?? initialPeakSec;
 
@@ -170,6 +200,8 @@ export function useReelEditor(options: {
     setInAtPlayhead,
     setOutAtPlayhead,
     updateCaptionText,
+    updateCaptionTiming,
+    addCaptionAtPlayhead,
     setZoomIntensity: (zoomIntensity: number) =>
       commit({ ...edit, zoomIntensity }),
     undo,

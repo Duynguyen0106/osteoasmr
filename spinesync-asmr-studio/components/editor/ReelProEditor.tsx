@@ -152,7 +152,19 @@ export function ReelProEditor({
         onTrimOutChange={editor.setTrimOut}
         onPeakChange={editor.setPeak}
         onSelectCaption={setCaptionIndex}
+        selectedCaptionIndex={captionIndex}
+        onCaptionTimingChange={editor.updateCaptionTiming}
       />
+
+      {editor.tool === "caption" && (
+        <button
+          type="button"
+          className="rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-[11px] text-purple-100 hover:bg-purple-500/20"
+          onClick={() => editor.addCaptionAtPlayhead()}
+        >
+          Add caption at playhead ({editor.playheadSec.toFixed(1)}s on clip)
+        </button>
+      )}
 
       <div className="grid gap-3 md:grid-cols-2">
         <label className="block text-[11px] text-slate-400">
@@ -166,15 +178,23 @@ export function ReelProEditor({
             className="mt-1 w-full"
           />
         </label>
-        {editor.tool === "caption" && captions?.length ? (
+        {editor.tool === "caption" ? (
           <label className="block text-[11px] text-slate-400">
             Caption text
-            <textarea
-              value={captions[captionIndex]?.text ?? ""}
-              onChange={(e) => editor.updateCaptionText(captionIndex, e.target.value)}
-              rows={2}
-              className="mt-1 w-full rounded-lg border border-slate-600/50 bg-slate-950/60 px-2 py-1 text-[11px] text-slate-200"
-            />
+            {captions?.length ? (
+              <textarea
+                value={captions[captionIndex]?.text ?? ""}
+                onChange={(e) =>
+                  editor.updateCaptionText(captionIndex, e.target.value)
+                }
+                rows={2}
+                className="mt-1 w-full rounded-lg border border-slate-600/50 bg-slate-950/60 px-2 py-1 text-[11px] text-slate-200"
+              />
+            ) : (
+              <span className="mt-1 block text-[10px] text-slate-500">
+                No captions yet — add at playhead or run Whisper in pipeline
+              </span>
+            )}
           </label>
         ) : (
           <p className="text-[10px] text-slate-500 self-end">
