@@ -9,6 +9,8 @@ interface PeakSoundAnalyticsProps {
   peakDb?: number;
   freqGainDb?: number;
   freqKhz?: number;
+  peakTimeSec?: number;
+  sourceLabel?: string;
 }
 
 export function PeakSoundAnalytics({
@@ -17,6 +19,8 @@ export function PeakSoundAnalytics({
   peakDb,
   freqGainDb,
   freqKhz,
+  peakTimeSec,
+  sourceLabel,
 }: PeakSoundAnalyticsProps) {
   const gain =
     freqGainDb ??
@@ -42,6 +46,12 @@ export function PeakSoundAnalytics({
           </dd>
         </div>
       </dl>
+      {peakTimeSec != null && (
+        <p className="mt-3 font-mono text-[10px] text-slate-500">
+          Peak @ {peakTimeSec.toFixed(2)}s
+          {sourceLabel ? ` · ${sourceLabel}` : ""}
+        </p>
+      )}
     </div>
   );
 }

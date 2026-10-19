@@ -1,3 +1,5 @@
+import { envelopeBarHeight } from "./client-audio-peaks";
+
 export const PEAK_TIME_SEC = 4.2;
 export const PEAK_WINDOW_SEC = 0.35;
 
@@ -15,7 +17,21 @@ export function barHeight(
   eqBoost: number,
   sfxCrack = false,
   peakTimeSec = PEAK_TIME_SEC,
+  envelope?: number[] | null,
+  durationSec?: number,
 ): number {
+  if (envelope?.length && durationSec && durationSec > 0) {
+    return envelopeBarHeight(
+      index,
+      barCount,
+      timeSec,
+      envelope,
+      durationSec,
+      eqBoost,
+      sfxCrack,
+      peakTimeSec,
+    );
+  }
   const phase = timeSec * 8 + index * 0.35;
   const base = 0.25 + Math.abs(Math.sin(phase)) * 0.35;
   const noise = Math.abs(Math.sin(index * 1.7 + timeSec * 3)) * 0.2;

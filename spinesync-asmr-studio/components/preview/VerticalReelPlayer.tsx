@@ -19,6 +19,8 @@ interface VerticalReelPlayerProps {
   peakTimeSec: number;
   captionSegments?: CaptionSegment[] | null;
   onRefreshMedia?: () => void;
+  audioEnvelope?: number[] | null;
+  audioDurationSec?: number;
 }
 
 export function VerticalReelPlayer({
@@ -31,6 +33,8 @@ export function VerticalReelPlayer({
   peakTimeSec,
   captionSegments,
   onRefreshMedia,
+  audioEnvelope = null,
+  audioDurationSec = 0,
 }: VerticalReelPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -237,6 +241,8 @@ export function VerticalReelPlayer({
             sfxCrack={sfxCrack}
             getTimeSec={getTimeSec}
             peakTimeSec={peakTimeSec}
+            audioEnvelope={audioEnvelope}
+            audioDurationSec={audioDurationSec}
           />
 
           <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/90 to-transparent p-3 pt-8 text-center text-[10px] text-slate-200">

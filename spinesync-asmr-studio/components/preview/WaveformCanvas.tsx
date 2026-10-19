@@ -8,6 +8,8 @@ interface WaveformCanvasProps {
   sfxCrack: boolean;
   getTimeSec: () => number;
   peakTimeSec: number;
+  audioEnvelope?: number[] | null;
+  audioDurationSec?: number;
 }
 
 export function WaveformCanvas({
@@ -16,6 +18,8 @@ export function WaveformCanvas({
   sfxCrack,
   getTimeSec,
   peakTimeSec,
+  audioEnvelope = null,
+  audioDurationSec = 0,
 }: WaveformCanvasProps) {
   const canvasRef = useWaveformCanvas(
     isPlaying,
@@ -23,6 +27,8 @@ export function WaveformCanvas({
     sfxCrack,
     getTimeSec,
     peakTimeSec,
+    audioEnvelope,
+    audioDurationSec,
   );
 
   return (

@@ -22,6 +22,9 @@ import { getActivePreset, getPresetById } from "@/lib/samples";
 import { PEAK_TIME_SEC } from "@/lib/waveform";
 import type { FocusCategory, ProcessingToggles } from "@/lib/types";
 
+import { JobExportsPanel } from "@/components/export/JobExportsPanel";
+import { useSourceAudioProfile } from "@/hooks/useSourceAudioProfile";
+import { spinesyncFetch } from "@/lib/api-client";
 import { uploadAssetSmart } from "@/lib/upload-client";
 
 export function StudioDashboard() {
@@ -29,6 +32,8 @@ export function StudioDashboard() {
   const [assetId, setAssetId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const localVideoUrl = useMediaObjectUrl(file);
+  const { profile: sourceAudio, loading: audioAnalyzing } = useSourceAudioProfile(file);
+  const [serverPeakTimeSec, setServerPeakTimeSec] = useState<number | null>(null);
   const [presetId, setPresetId] = useState<string | null>("neck-crack");
   const [focus, setFocus] = useState<FocusCategory>("neck");
   const [eqBoost, setEqBoost] = useState(65);
@@ -68,7 +73,18 @@ export function StudioDashboard() {
     : undefined;
 
   const preset = getActivePreset(presetId, focus);
-  const peakTimeSec = jobResult?.peak.timeSec ?? PEAK_TIME_SEC;
+  const peakTimeSec =
+    jobResult?.peak.timeSec ??
+    serverPeakTimeSec ??
+    (sourceAudio.envelope.length ? sourceAudio.peakTimeSec : PEAK_TIME_SEC);
+
+  const peakSourceLabel = jobResult
+    ? "pipeline"
+    : sourceAudio.envelope.length
+      ? "upload (Web Audio)"
+      : serverPeakTimeSec != null
+        ? "upload (ffmpeg)"
+        : undefined;
 
   const previewVideoUrl = useMemo(() => {
     if (jobResult?.previewUrls?.reel) return jobResult.previewUrls.reel;
@@ -79,6 +95,7 @@ export function StudioDashboard() {
     async (f: File | null) => {
       setFile(f);
       setAssetId(null);
+      setServerPeakTimeSec(null);
       if (!f) {
         appendLog("Upload cleared · select a sample or drop new media");
         return;
@@ -91,6 +108,18 @@ export function StudioDashboard() {
           const id = await uploadAssetSmart(f);
           setAssetId(id);
           appendLog(`Server asset registered · ${id.slice(0, 8)}…`);
+          try {
+            const analyze = await spinesyncFetch(`/api/assets/${id}/analyze`);
+            if (analyze.ok) {
+              const data = (await analyze.json()) as { peakTimeSec: number };
+              setServerPeakTimeSec(data.peakTimeSec);
+              appendLog(
+                `Peak scan · ${data.peakTimeSec.toFixed(2)}s (server ffmpeg)`,
+              );
+            }
+          } catch {
+            /* client Web Audio profile still applies */
+          }
         } catch (err) {
           appendLog(
             `Upload failed: ${err instanceof Error ? err.message : "unknown"}`,
@@ -254,6 +283,10 @@ export function StudioDashboard() {
               videoUrl={previewVideoUrl}
               peakTimeSec={peakTimeSec}
               captionSegments={jobResult?.captionSegments ?? null}
+              audioEnvelope={
+                sourceAudio.envelope.length ? sourceAudio.envelope : null
+              }
+              audioDurationSec={sourceAudio.durationSec}
               onRefreshMedia={
                 refreshJobMedia
                   ? () => {
@@ -266,9 +299,11 @@ export function StudioDashboard() {
               <PeakSoundAnalytics
                 preset={preset}
                 eqBoost={eqBoost}
-                peakDb={jobResult?.peak.peakDb}
+                peakDb={jobResult?.peak.peakDb ?? sourceAudio.peakDb}
                 freqGainDb={jobResult?.peak.freqGainDb}
                 freqKhz={jobResult?.peak.freqKhz}
+                peakTimeSec={peakTimeSec}
+                sourceLabel={peakSourceLabel}
               />
               <ThumbnailPicker
                 preset={preset}
@@ -286,6 +321,15 @@ export function StudioDashboard() {
               copyRevision={copyRevision}
               serverCopy={serverCopy}
             />
+            <JobExportsPanel
+              jobResult={jobResult}
+              pipelineComplete={pipelineComplete}
+            />
+            {audioAnalyzing && file && (
+              <p className="text-center text-[10px] text-cyan-400/80">
+                Decoding upload audio for live waveform…
+              </p>
+            )}
           </div>
         </div>
       </main>

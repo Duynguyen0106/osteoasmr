@@ -11,6 +11,8 @@ export function useWaveformCanvas(
   sfxCrack: boolean,
   getTimeSec: () => number,
   peakTimeSec: number,
+  audioEnvelope: number[] | null,
+  audioDurationSec: number,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const getTimeRef = useRef(getTimeSec);
@@ -43,7 +45,16 @@ export function useWaveformCanvas(
       const gap = 2;
 
       for (let i = 0; i < BAR_COUNT; i++) {
-        const norm = barHeight(i, BAR_COUNT, timeSec, eqBoost, sfxCrack, peakTimeSec);
+        const norm = barHeight(
+          i,
+          BAR_COUNT,
+          timeSec,
+          eqBoost,
+          sfxCrack,
+          peakTimeSec,
+          audioEnvelope,
+          audioDurationSec,
+        );
         const barH = norm * h * 0.9;
         const x = i * barW + gap / 2;
         const y = h - barH;
@@ -56,7 +67,7 @@ export function useWaveformCanvas(
       }
       ctx.shadowBlur = 0;
     },
-    [eqBoost, sfxCrack, peakTimeSec],
+    [eqBoost, sfxCrack, peakTimeSec, audioEnvelope, audioDurationSec],
   );
 
   useEffect(() => {
