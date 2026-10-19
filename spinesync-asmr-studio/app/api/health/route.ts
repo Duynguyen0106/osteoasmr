@@ -21,6 +21,7 @@ import {
 } from "@/lib/server/config";
 import { redisQueueEnabled } from "@/lib/server/redis-queue";
 import { parseMaxFunctionDurationSec } from "@/lib/server/hosting-hints";
+import { pipelineBlockers } from "@/lib/server/pipeline-readiness";
 import { getStorage } from "@/lib/server/storage";
 
 export async function GET() {
@@ -34,6 +35,13 @@ export async function GET() {
   const ephemeral = isEphemeralHosting();
   const durableStorage = pipelineMediaReady(storage.driver, s3Configured);
   const pipelineReady = ffmpegStatus.ok && durableStorage;
+  const blockers = pipelineBlockers({
+    ffmpegOk: ffmpegStatus.ok,
+    ffmpegError: ffmpegStatus.error,
+    durableStorage,
+    storageDriver: storage.driver,
+    s3Configured,
+  });
 
   return NextResponse.json({
     ok: true,
@@ -43,7 +51,9 @@ export async function GET() {
       path: ffmpegStatus.ffmpegPath.includes("node_modules")
         ? "bundled"
         : ffmpegStatus.ffmpegPath,
+      error: ffmpegStatus.error ?? null,
     },
+    pipelineBlockers: blockers,
     hosting: {
       vercel: process.env.VERCEL === "1",
       serverless: process.env.VERCEL === "1",

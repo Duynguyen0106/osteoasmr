@@ -41,18 +41,27 @@ export function StudioCapabilityBanner({
 
   const warnings: string[] = [];
   if (healthError) warnings.push(healthError);
-  if (health && !health.ffmpeg) {
-    warnings.push(
-      "ffmpeg not detected — video pipeline stages will fail until ffmpeg is on PATH or bundled (ffmpeg-static).",
-    );
-  }
-  if (health?.hosting?.ephemeralData && health.storage?.driver === "local") {
-    warnings.push(
-      "Ephemeral disk (e.g. Vercel /tmp) — configure STORAGE_DRIVER=s3 so reels and uploads persist.",
-    );
-  }
-  if (health?.hosting?.pipelineReady === false && health.ffmpeg) {
-    warnings.push("Pipeline blocked until durable storage (S3) is configured.");
+  if (health?.pipelineBlockers?.length) {
+    for (const text of health.pipelineBlockers) {
+      warnings.push(text);
+    }
+  } else {
+    if (health && !health.ffmpeg) {
+      const detail = health.ffmpegDetail?.error;
+      warnings.push(
+        detail
+          ? `ffmpeg unavailable — ${detail}`
+          : "ffmpeg not detected — pipeline stages will fail until bundled binaries deploy or FFMPEG_PATH is set.",
+      );
+    }
+    if (health?.hosting?.ephemeralData && health.storage?.driver === "local") {
+      warnings.push(
+        "Ephemeral disk (e.g. Vercel /tmp) — configure STORAGE_DRIVER=s3 so reels and uploads persist.",
+      );
+    }
+    if (health?.hosting?.pipelineReady === false && health.ffmpeg) {
+      warnings.push("Pipeline blocked until durable storage (S3) is configured.");
+    }
   }
   if (health?.queue?.executor === "worker" && health.queue?.backend !== "redis") {
     warnings.push(
