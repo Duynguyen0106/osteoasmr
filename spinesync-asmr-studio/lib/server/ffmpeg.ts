@@ -1,12 +1,13 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
 import fs from "fs";
+import { ffmpegExecutable, ffprobeExecutable } from "./ffmpeg-bin";
 
 const execFileAsync = promisify(execFile);
 
 export async function probeDurationSec(filePath: string): Promise<number | null> {
   try {
-    const { stdout } = await execFileAsync("ffprobe", [
+    const { stdout } = await execFileAsync(ffprobeExecutable(), [
       "-v",
       "error",
       "-show_entries",
@@ -35,7 +36,7 @@ export async function detectPeakTimeSec(
     const window = Math.min(step, duration - t);
     try {
       const { stderr } = await execFileAsync(
-        "ffmpeg",
+        ffmpegExecutable(),
         [
           "-hide_banner",
           "-ss",
@@ -71,7 +72,7 @@ export async function detectPeakTimeSec(
 }
 
 export async function runFfmpeg(args: string[]): Promise<void> {
-  await execFileAsync("ffmpeg", ["-hide_banner", "-y", ...args], {
+  await execFileAsync(ffmpegExecutable(), ["-hide_banner", "-y", ...args], {
     maxBuffer: 8 * 1024 * 1024,
   });
 }

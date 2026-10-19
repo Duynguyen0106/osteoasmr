@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { ApiKeyPanel } from "@/components/layout/ApiKeyPanel";
 import { AuthBootstrap } from "@/components/layout/AuthBootstrap";
 import { Header } from "@/components/layout/Header";
+import { StudioCapabilityBanner } from "@/components/layout/StudioCapabilityBanner";
 import { PipelineBanner } from "@/components/layout/PipelineBanner";
 import { IngestionPanel } from "@/components/ingestion/IngestionPanel";
 import { FocusSelector } from "@/components/controls/FocusSelector";
@@ -31,6 +33,7 @@ import { JobHistoryPanel } from "@/components/jobs/JobHistoryPanel";
 import { useSourceAudioProfile } from "@/hooks/useSourceAudioProfile";
 import { spinesyncFetch } from "@/lib/api-client";
 import { uploadAssetSmart } from "@/lib/upload-client";
+import { useStudioHealth } from "@/hooks/useStudioHealth";
 
 export function StudioDashboard() {
   const [file, setFile] = useState<File | null>(null);
@@ -70,6 +73,10 @@ export function StudioDashboard() {
       return null;
     },
   });
+
+  const { health: studioHealth, error: healthError } = useStudioHealth(
+    isServerPipeline,
+  );
 
   const active = isServerPipeline ? server : mock;
   const {
@@ -206,8 +213,24 @@ export function StudioDashboard() {
     [appendLog, server],
   );
 
+  const pipelineBlocked =
+    isServerPipeline &&
+    Boolean(file || assetId) &&
+    studioHealth?.hosting?.pipelineReady === false;
+
   const canRunPipeline =
-    Boolean(file || presetId || focus) && !uploading && !pipeline.running;
+    Boolean(file || presetId || focus) &&
+    !uploading &&
+    !pipeline.running &&
+    !pipelineBlocked;
+
+  const publishHint = !isServerPipeline
+    ? "Mock mode — dispatch logs only."
+    : !studioHealth?.integrations?.canPublishAyrshare
+      ? studioHealth?.integrations?.ayrshare
+        ? "Set APP_BASE_URL to your public HTTPS URL for live Ayrshare posts."
+        : "Add AYRSHARE_API_KEY + HTTPS APP_BASE_URL for live posts (stub logs otherwise)."
+      : undefined;
 
   const handleRunPipeline = useCallback(() => {
     if (isServerPipeline) {
@@ -296,8 +319,9 @@ export function StudioDashboard() {
         aria-hidden
       />
       <Header />
-      {isServerPipeline && (
-        <p className="relative mx-auto max-w-7xl px-4 pt-2 text-center text-[10px] uppercase tracking-widest text-emerald-400/90 sm:px-6">
+      <StudioCapabilityBanner health={studioHealth} healthError={healthError} />
+      {isServerPipeline && studioHealth?.hosting?.pipelineReady && (
+        <p className="relative mx-auto max-w-7xl px-4 pt-1 text-center text-[10px] uppercase tracking-widest text-emerald-400/90 sm:px-6">
           Server pipeline · SQLite + ffmpeg · SSE logs
         </p>
       )}
@@ -350,6 +374,10 @@ export function StudioDashboard() {
               settings={asmrSettings}
               onApply={applyAsmrPreset}
             />
+            <ApiKeyPanel
+              visible={isServerPipeline}
+              requireApiKey={studioHealth?.auth?.requireApiKey ?? false}
+            />
             <RunPipelineButton
               running={pipeline.running || uploading}
               disabled={!canRunPipeline}
@@ -358,6 +386,11 @@ export function StudioDashboard() {
             <SocialDispatchPanel
               onDispatch={handleSocialDispatch}
               pipelineComplete={pipelineComplete}
+              canPublishLive={
+                isServerPipeline &&
+                Boolean(studioHealth?.integrations?.canPublishAyrshare)
+              }
+              publishHint={publishHint}
             />
             {isServerPipeline && (
               <JobHistoryPanel

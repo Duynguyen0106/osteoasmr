@@ -10,11 +10,16 @@ import { ASMR_TARGET_LUFS } from "@/lib/asmr-export";
 import { getAsmrProfile, eqBoostToGainDb } from "@/lib/asmr-profiles";
 import { renderEqAudio } from "./audio-eq";
 import {
+  checkFfmpegAvailable,
+  pipelineMediaReady,
+} from "./ffmpeg-bin";
+import {
   detectPeakTimeSec,
   fileExists,
   probeDurationSec,
   runFfmpeg,
 } from "./ffmpeg";
+import { hasS3Config, storageDriverEnv } from "./config";
 import { materializeAssetLocalPath } from "./assets";
 import {
   appendJobLog,
@@ -40,6 +45,25 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
   await fs.promises.mkdir(dir, { recursive: true });
 
   markJobRunning(jobId);
+
+  const ffmpegStatus = await checkFfmpegAvailable();
+  const storageDriver = storageDriverEnv();
+  const durable = pipelineMediaReady(storageDriver, hasS3Config());
+  if (config.assetId && (!ffmpegStatus.ok || !durable)) {
+    const reasons: string[] = [];
+    if (!ffmpegStatus.ok) {
+      reasons.push("ffmpeg unavailable (install ffmpeg or use bundled static binary on deploy)");
+    }
+    if (!durable) {
+      reasons.push(
+        "local disk is ephemeral on this host — set STORAGE_DRIVER=s3 for durable job artifacts",
+      );
+    }
+    failJob(jobId, `Pipeline preflight failed: ${reasons.join("; ")}`);
+    appendJobLog(jobId, `✗ ${reasons.join(" · ")}`);
+    return;
+  }
+
   appendJobLog(jobId, "▶ RUN FULL AI PIPELINE initiated");
   appendJobLog(
     jobId,

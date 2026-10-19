@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   serverExternalPackages: [
     "better-sqlite3",
+    "ffmpeg-static",
+    "ffprobe-static",
     "@aws-sdk/client-s3",
     "@aws-sdk/s3-request-presigner",
     "@remotion/bundler",

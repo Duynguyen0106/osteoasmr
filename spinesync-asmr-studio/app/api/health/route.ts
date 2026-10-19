@@ -1,8 +1,11 @@
 import { connection } from "next/server";
 import { NextResponse } from "next/server";
-import { execFile } from "child_process";
-import { promisify } from "util";
 import { ensureDefaultProject, getProjectApiKey } from "@/lib/server/auth";
+import {
+  checkFfmpegAvailable,
+  isEphemeralHosting,
+  pipelineMediaReady,
+} from "@/lib/server/ffmpeg-bin";
 import {
   appBaseUrl,
   canPublishToAyrshare,
@@ -19,25 +22,33 @@ import {
 import { redisQueueEnabled } from "@/lib/server/redis-queue";
 import { getStorage } from "@/lib/server/storage";
 
-const execFileAsync = promisify(execFile);
-
 export async function GET() {
   await connection();
-  let ffmpeg = false;
-  try {
-    await execFileAsync("ffmpeg", ["-version"]);
-    ffmpeg = true;
-  } catch {
-    ffmpeg = false;
-  }
+  const ffmpegStatus = await checkFfmpegAvailable();
 
   ensureDefaultProject();
   const storage = getStorage();
   const defaultProjectId = ensureDefaultProject().id;
+  const s3Configured = storage.driver === "s3" ? hasS3Config() : false;
+  const ephemeral = isEphemeralHosting();
+  const durableStorage = pipelineMediaReady(storage.driver, s3Configured);
+  const pipelineReady = ffmpegStatus.ok && durableStorage;
 
   return NextResponse.json({
     ok: true,
-    ffmpeg,
+    ffmpeg: ffmpegStatus.ok,
+    ffmpegDetail: {
+      bundled: ffmpegStatus.bundled,
+      path: ffmpegStatus.ffmpegPath.includes("node_modules")
+        ? "bundled"
+        : ffmpegStatus.ffmpegPath,
+    },
+    hosting: {
+      vercel: process.env.VERCEL === "1",
+      ephemeralData: ephemeral,
+      durableStorage,
+      pipelineReady,
+    },
     database: "sqlite",
     storage: {
       driver: storage.driver,
