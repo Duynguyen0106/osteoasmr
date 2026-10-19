@@ -161,15 +161,19 @@ async function upsertProjectEnv(projectId, vars) {
 
     const prev = byKey.get(key);
     if (prev) {
-      await vercelFetch(`/v9/projects/${projectId}/env/${prev.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          value,
-          target: targets,
-          type: "encrypted",
-        }),
-      });
-      console.log(`Updated ${key}`);
+      try {
+        await vercelFetch(`/v9/projects/${projectId}/env/${prev.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            value,
+            target: targets,
+            type: prev.type ?? "encrypted",
+          }),
+        });
+        console.log(`Updated ${key}`);
+      } catch (err) {
+        console.warn(`Skipped ${key}: ${err instanceof Error ? err.message : err}`);
+      }
     } else {
       await vercelFetch(`/v9/projects/${projectId}/env`, {
         method: "POST",

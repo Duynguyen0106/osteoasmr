@@ -37,7 +37,7 @@ Hobby accounts may hit **100 deploys/day**; if deploy fails, wait for quota rese
 |----------|-----------------|
 | `NEXT_PUBLIC_PIPELINE_MODE` | `server` (also in `vercel.json`) |
 | `SPINESYNC_DATA_ROOT` | `/tmp/spinesync` (ephemeral SQLite + cache) |
-| `STORAGE_DRIVER` | `s3` |
+| `STORAGE_DRIVER` | `blob` (Vercel Blob, recommended on Hobby) or `s3` |
 | `AWS_REGION` | `us-east-1` |
 | `AWS_S3_BUCKET` | your bucket |
 | `AWS_ACCESS_KEY_ID` | IAM user or role key |
