@@ -176,6 +176,14 @@ When smoke is checked, proceed to Phase 2.2 (edit persistence / asset store).
 - [x] Unit tests for clip-space B-roll mapping
 - [ ] Manual smoke: overlay visible in exported reel during window
 
+### Phase 2.5 — routing
+
+- [x] `/editor` opens Reel Pro Editor tab (URL sync when `syncRoutes`)
+- [x] `/jobs/[id]/edit` deep link loads job + edit (server mode)
+- [x] Tab switches update URL (`/` ↔ `/editor` ↔ job edit when a job is active)
+- [x] Job history row includes editor deep link
+- [ ] Manual smoke: share `/jobs/{id}/edit` → recipient sees job media + edit restored
+
 ---
 
 ## 9. Related docs
