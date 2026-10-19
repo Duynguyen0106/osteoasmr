@@ -7,16 +7,18 @@ import { isServerPipeline } from "@/lib/pipeline-mode";
 interface StudioCapabilityBannerProps {
   health: StudioHealth | null;
   healthError: string | null;
+  mockEditPending?: boolean;
 }
 
 export function StudioCapabilityBanner({
   health,
   healthError,
+  mockEditPending = false,
 }: StudioCapabilityBannerProps) {
   if (!isServerPipeline) {
     return (
       <div
-        className="relative mx-auto max-w-7xl px-4 pt-2 sm:px-6"
+        className="relative mx-auto max-w-7xl space-y-2 px-4 pt-2 sm:px-6"
         role="status"
       >
         <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center text-[11px] text-amber-100">
@@ -25,6 +27,12 @@ export function StudioCapabilityBanner({
           <code className="text-amber-200">NEXT_PUBLIC_PIPELINE_MODE=server</code>{" "}
           at build time for SQLite, jobs, and ffmpeg exports.
         </p>
+        {mockEditPending && (
+          <p className="rounded-lg border border-fuchsia-500/30 bg-fuchsia-950/30 px-3 py-2 text-center text-[11px] text-fuchsia-100">
+            Reel Pro Editor changes apply on export only in{" "}
+            <strong>server mode</strong> — mock run will not trim or bake captions.
+          </p>
+        )}
       </div>
     );
   }

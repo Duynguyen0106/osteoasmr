@@ -42,6 +42,7 @@ import {
 } from "@/components/layout/StudioViewTabs";
 import type { ReelEditState } from "@/lib/contract/reel-edit";
 import { defaultReelEdit } from "@/lib/contract/reel-edit";
+import { hasMeaningfulEdit } from "@/lib/reel-edit/edit-diff";
 import { normalizeReelEdit } from "@/lib/reel-edit/normalize";
 
 export function StudioDashboard() {
@@ -72,6 +73,7 @@ export function StudioDashboard() {
   const [studioView, setStudioView] = useState<StudioView>("pipeline");
   const [reelEdit, setReelEdit] = useState<ReelEditState | null>(null);
   const [editorSeekClipSec, setEditorSeekClipSec] = useState<number | null>(null);
+  const [videoSourceDurationSec, setVideoSourceDurationSec] = useState(0);
 
   const mock = usePipeline();
   const server = usePipelineServer({
@@ -109,12 +111,12 @@ export function StudioDashboard() {
     : undefined;
 
   const preset = getActivePreset(presetId, focus);
-  const sourceDurationSec =
-    sourceAudio.durationSec > 0
-      ? sourceAudio.durationSec
-      : jobResult?.peak.timeSec
-        ? jobResult.peak.timeSec * 2
-        : 12;
+  const sourceDurationSec = Math.max(
+    sourceAudio.durationSec,
+    videoSourceDurationSec,
+    jobResult?.peak.timeSec ? jobResult.peak.timeSec * 2 : 0,
+    0.1,
+  ) || 12;
 
   const peakTimeSec =
     jobResult?.peak.timeSec ??
@@ -141,6 +143,8 @@ export function StudioDashboard() {
       setFile(f);
       setAssetId(null);
       setServerPeakTimeSec(null);
+      setVideoSourceDurationSec(0);
+      setReelEdit(null);
       if (!f) {
         appendLog("Upload cleared · select a sample or drop new media");
         return;
@@ -287,6 +291,9 @@ export function StudioDashboard() {
       roomTone,
       bypassSculpt: exportBypassSculpt,
       crackSampleId,
+      edit:
+        reelEdit ??
+        normalizeReelEdit(defaultReelEdit(sourceDurationSec), sourceDurationSec),
     });
   }, [
     eqBoost,
@@ -356,7 +363,13 @@ export function StudioDashboard() {
         onChange={setStudioView}
         editorEnabled={editorEnabled}
       />
-      <StudioCapabilityBanner health={studioHealth} healthError={healthError} />
+      <StudioCapabilityBanner
+        health={studioHealth}
+        healthError={healthError}
+        mockEditPending={
+          !isServerPipeline && hasMeaningfulEdit(reelEdit, sourceDurationSec)
+        }
+      />
       {isServerPipeline && studioHealth?.hosting?.pipelineReady && (
         <p className="relative mx-auto max-w-7xl px-4 pt-1 text-center text-[10px] uppercase tracking-widest text-emerald-400/90 sm:px-6">
           Server pipeline · SQLite + ffmpeg · SSE logs
@@ -448,7 +461,15 @@ export function StudioDashboard() {
               <JobHistoryPanel
                 activeJobId={server.jobId}
                 refreshKey={server.historyTick}
-                onOpenJob={(id) => void server.loadJob(id)}
+                onOpenJob={(id) =>
+                  void server.loadJob(id, (edit) => {
+                    if (edit) {
+                      setReelEdit(edit);
+                      setStudioView("editor");
+                      appendLog("Restored reel edit from job config");
+                    }
+                  })
+                }
               />
             )}
           </div>
@@ -479,6 +500,7 @@ export function StudioDashboard() {
               crackSampleId={crackSampleId}
               reelEdit={studioView === "editor" ? reelEdit : null}
               previewSeekClipSec={editorSeekClipSec}
+              onSourceDurationSec={setVideoSourceDurationSec}
               onRefreshMedia={
                 refreshJobMedia
                   ? () => {

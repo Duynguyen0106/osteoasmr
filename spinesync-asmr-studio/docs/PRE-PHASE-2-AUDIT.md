@@ -132,15 +132,17 @@ Explicitly **out of scope** for Phase 2 unless product asks: multi-user review, 
 
 ## 8. Phase 2 entry checklist
 
-- [ ] Merge **PR #7** (or equivalent) to `main`
+- [ ] Merge **PR #7** (+ pre-phase-2 checklist branch) to `main`
 - [ ] Smoke: upload → Editor → trim + peak → server pipeline → reel matches trim
-- [ ] Fix **P0.1** caption/trim timebase (or document “re-run pipeline after trim”)
-- [ ] Fix **P0.2** video duration on ruler
-- [ ] Mock mode banner or edit-aware mock logs
-- [ ] Decide markers: implement or remove from UI
-- [ ] Add one API/integration test for `edit` payload
+- [x] Fix **P0.1** caption/trim timebase — `lib/reel-edit/captions.ts`, pipeline export filter
+- [x] Fix **P0.2** video duration on ruler — `onSourceDurationSec` from preview video metadata
+- [x] Mock mode banner + edit-aware mock pipeline logs
+- [x] Markers — logged on pipeline run (reference); not rendered in export yet
+- [x] Unit tests for `edit` Zod payload + caption trim (`job-edit-schema`, `captions-trim`)
+- [x] CI uses `test:unit` only (integration SIGSEGV on Actions)
+- [x] Job history restores `edit` from GET `/api/jobs/:id`
 
-When all P0 items are checked, start Phase 2.1 (caption timeline).
+When merge + smoke are checked, start Phase 2.1 (caption timeline drag).
 
 ---
 

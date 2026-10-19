@@ -7,6 +7,7 @@ import {
   type ReelEditState,
   type ReelMarker,
 } from "@/lib/contract/reel-edit";
+import { importCaptionsForEditor } from "@/lib/reel-edit/captions";
 import { clipDurationSec, normalizeReelEdit } from "@/lib/reel-edit/normalize";
 
 const MAX_UNDO = 24;
@@ -23,11 +24,12 @@ export function useReelEditor(options: {
 
   const [edit, setEditRaw] = useState<ReelEditState>(() => {
     const base = defaultReelEdit(dur);
+    const peakClip = Math.max(0, Math.min(initialPeakSec - base.trimInSec, dur));
     return normalizeReelEdit(
       {
         ...base,
-        peakTimeSec: initialPeakSec,
-        captions: captionSegments?.length ? captionSegments : undefined,
+        peakTimeSec: peakClip,
+        captions: importCaptionsForEditor(captionSegments, base, dur),
       },
       dur,
     );

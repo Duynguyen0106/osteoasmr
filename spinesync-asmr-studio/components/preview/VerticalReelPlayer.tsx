@@ -33,6 +33,7 @@ interface VerticalReelPlayerProps {
   crackSampleId?: CrackSampleId;
   reelEdit?: ReelEditState | null;
   previewSeekClipSec?: number | null;
+  onSourceDurationSec?: (sec: number) => void;
 }
 
 export function VerticalReelPlayer({
@@ -54,6 +55,7 @@ export function VerticalReelPlayer({
   crackSampleId = "syn-bright",
   reelEdit = null,
   previewSeekClipSec = null,
+  onSourceDurationSec,
 }: VerticalReelPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -252,8 +254,9 @@ export function VerticalReelPlayer({
     const video = videoRef.current;
     if (video && Number.isFinite(video.duration)) {
       setVideoDurationSec(video.duration);
+      onSourceDurationSec?.(video.duration);
     }
-  }, []);
+  }, [onSourceDurationSec]);
 
   const handleVideoError = useCallback(() => {
     if (videoUrl) {

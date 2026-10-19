@@ -8,10 +8,15 @@ export async function materializeTrimmedSource(options: {
   sourcePath: string;
   outputPath: string;
   edit: ReelEditState;
+  sourceDurationSec?: number;
 }): Promise<{ path: string; trimmed: boolean }> {
-  const { sourcePath, outputPath, edit } = options;
+  const { sourcePath, outputPath, edit, sourceDurationSec } = options;
   const clipDur = clipDurationSec(edit);
-  const needsTrim = edit.trimInSec > 0.01 || edit.trimOutSec != null;
+  const needsTrim =
+    edit.trimInSec > 0.01 ||
+    (edit.trimOutSec != null &&
+      sourceDurationSec != null &&
+      edit.trimOutSec < sourceDurationSec - 0.05);
 
   if (!needsTrim) {
     return { path: sourcePath, trimmed: false };

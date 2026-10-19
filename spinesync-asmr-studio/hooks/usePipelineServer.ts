@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import confetti from "canvas-confetti";
 import type { JobCopyResult, JobResult } from "@/lib/contract/job";
+import type { ReelEditState } from "@/lib/contract/reel-edit";
 import { PIPELINE_STAGES, createInitialStageStatus } from "@/lib/pipeline";
 import type { LogEntry, PipelineRunContext, PipelineStageId } from "@/lib/types";
 import { spinesyncFetch } from "@/lib/api-client";
@@ -289,7 +290,7 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
   );
 
   const loadJob = useCallback(
-    async (id: string) => {
+    async (id: string, onEdit?: (edit: ReelEditState | undefined) => void) => {
       const res = await spinesyncFetch(`/api/jobs/${id}`);
       if (!res.ok) {
         appendLog(`Could not open job ${id.slice(0, 8)}…`);
@@ -304,8 +305,10 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
         logs: LogEntry[];
         copyRevision: number;
         result: JobResult | null;
+        edit?: ReelEditState;
       };
       setJobId(data.id);
+      onEdit?.(data.edit);
       setLogs(trimLogs(data.logs));
       setCopyRevision(data.copyRevision);
       setJobResult(data.result);

@@ -187,7 +187,7 @@ export function TimelineMultiTrack({
             type="button"
             className="absolute top-1 bottom-1 rounded bg-purple-500/30 px-1 text-[9px] text-purple-100 truncate border border-purple-400/30 hover:bg-purple-500/45"
             style={{
-              left: `${pct(edit.trimInSec + c.start, sourceDur)}%`,
+              left: `${pct(c.start, sourceDur)}%`,
               width: `${Math.max(3, pct(c.end - c.start, sourceDur))}%`,
             }}
             onClick={() => onSelectCaption?.(i)}

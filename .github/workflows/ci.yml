@@ -28,5 +28,6 @@ jobs:
       - run: npm ci
       - run: npm rebuild better-sqlite3
       - run: npm run lint
-      - run: npm test
+      # Full `npm test` loads better-sqlite3 under tsx and SIGSEGV on ubuntu-latest
+      - run: npm run test:unit
       - run: npm run build

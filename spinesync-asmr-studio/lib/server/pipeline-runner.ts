@@ -36,6 +36,7 @@ import { buildJobPreviewUrls, publishJobArtifactsToStorage } from "./job-artifac
 import { renderReel916 } from "./render";
 import { renderRemotionLocal } from "./remotion-render";
 import { defaultReelEdit } from "@/lib/contract/reel-edit";
+import { captionsForTrimmedExport } from "@/lib/reel-edit/captions";
 import { normalizeReelEdit } from "@/lib/reel-edit/normalize";
 import {
   materializeTrimmedSource,
@@ -109,6 +110,7 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
         sourcePath,
         outputPath: trimmedSourcePath(dir),
         edit,
+        sourceDurationSec: rawDuration,
       });
       if (trimmed.trimmed) sourcePath = trimmed.path;
     }
@@ -116,6 +118,12 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
       appendJobLog(
         jobId,
         `Reel edit · manual peak @ ${edit.peakTimeSec.toFixed(2)}s on timeline`,
+      );
+    }
+    if (edit.markers.length > 0) {
+      appendJobLog(
+        jobId,
+        `Reel edit · ${edit.markers.length} timeline marker(s) (reference only)`,
       );
     }
   }
@@ -181,8 +189,9 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
         );
       } else if (stageId === "whisper") {
         const whisperAudio = path.join(dir, "whisper.mp3");
-        if (edit.captions?.length) {
-          captionSegments = edit.captions;
+        const exportCaptions = captionsForTrimmedExport(edit.captions, edit);
+        if (exportCaptions?.length) {
+          captionSegments = exportCaptions;
           const vtt = segmentsToVtt(captionSegments);
           await fs.promises.writeFile(vttPath, vtt);
           await fs.promises.writeFile(

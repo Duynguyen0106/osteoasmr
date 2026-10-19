@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { JobResult } from "@/lib/contract/job";
+import { createJobBodySchema, type JobResult } from "@/lib/contract/job";
 import { PIPELINE_STAGES, createInitialStageStatus } from "@/lib/pipeline";
 import type { PipelineStageId, StageStatus } from "@/lib/types";
 import { assertJobAccess } from "@/lib/server/access";
@@ -60,6 +60,14 @@ export async function GET(
     }
   }
 
+  let edit: ReturnType<typeof createJobBodySchema.parse>["edit"];
+  try {
+    const parsed = createJobBodySchema.safeParse(JSON.parse(job.configJson));
+    edit = parsed.success ? parsed.data.edit : undefined;
+  } catch {
+    edit = undefined;
+  }
+
   return NextResponse.json({
     id: job.id,
     status: job.status,
@@ -70,5 +78,6 @@ export async function GET(
     copyRevision: job.copyRevision,
     result,
     error: job.error,
+    edit,
   });
 }
