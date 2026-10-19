@@ -12,6 +12,7 @@ test("mock export hints include clip summary", () => {
     peakTimeSec: 2,
     zoomIntensity: 100,
     markers: [],
+    brollOverlays: [],
     captions: [{ start: 0, end: 1, text: "hi" }],
   };
   assert.match(mockReelEditBannerLine(edit, 10), /7\.0s clip/);

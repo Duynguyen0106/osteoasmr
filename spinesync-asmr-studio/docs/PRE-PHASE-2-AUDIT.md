@@ -168,6 +168,14 @@ When smoke is checked, proceed to Phase 2.2 (edit persistence / asset store).
 - [x] Editor copy clarifies preview-only vs server export
 - [ ] Manual smoke: long file where audio decode ≠ video duration — warning visible, trim sane
 
+### Phase 2.4 — B-roll / overlay track
+
+- [x] `brollOverlays[]` on reel edit contract (assetId, source start/end, broll in-point)
+- [x] B-roll timeline lane + upload at playhead (server assets)
+- [x] Pipeline compositor (`applyBrollOverlays`) after trim, before EQ/render
+- [x] Unit tests for clip-space B-roll mapping
+- [ ] Manual smoke: overlay visible in exported reel during window
+
 ### Phase 2.5 — routing
 
 - [x] `/editor` opens Reel Pro Editor tab (URL sync when `syncRoutes`)

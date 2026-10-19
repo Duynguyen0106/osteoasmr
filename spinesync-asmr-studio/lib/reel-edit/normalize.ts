@@ -43,6 +43,19 @@ export function normalizeReelEdit(
       .sort((a, b) => a.start - b.start);
   }
 
+  let brollOverlays = edit.brollOverlays;
+  if (brollOverlays?.length) {
+    brollOverlays = brollOverlays
+      .map((b) => ({
+        ...b,
+        startSec: Math.max(0, Math.min(b.startSec, dur - MIN_CLIP_SEC)),
+        endSec: Math.max(0, Math.min(b.endSec, dur)),
+        brollInSec: Math.max(0, b.brollInSec),
+      }))
+      .filter((b) => b.endSec > b.startSec + MIN_CLIP_SEC)
+      .sort((a, b) => a.startSec - b.startSec);
+  }
+
   return {
     ...edit,
     trimInSec: trimIn,
@@ -50,6 +63,7 @@ export function normalizeReelEdit(
     peakTimeSec: peak,
     markers,
     captions,
+    brollOverlays,
   };
 }
 

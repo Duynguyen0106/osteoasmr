@@ -14,6 +14,15 @@ test("createJobBodySchema accepts edit payload", () => {
       peakTimeSec: 4,
       zoomIntensity: 80,
       markers: [{ id: "m1", timeSec: 2, color: "cyan" }],
+      brollOverlays: [
+        {
+          id: "b1",
+          assetId: "asset-xyz",
+          startSec: 1,
+          endSec: 3,
+          brollInSec: 0,
+        },
+      ],
     },
   });
   assert.equal(parsed.success, true);

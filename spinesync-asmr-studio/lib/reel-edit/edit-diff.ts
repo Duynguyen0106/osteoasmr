@@ -25,6 +25,7 @@ export function hasMeaningfulEdit(
   if (edit.peakTimeSec != null) return true;
   if (edit.captions?.length) return true;
   if (edit.markers.length > 0) return true;
+  if ((edit.brollOverlays?.length ?? 0) > 0) return true;
   if (edit.zoomIntensity !== base.zoomIntensity) return true;
   return false;
 }
