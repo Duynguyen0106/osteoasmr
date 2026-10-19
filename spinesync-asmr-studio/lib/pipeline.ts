@@ -19,7 +19,7 @@ export const PIPELINE_STAGES: PipelineStage[] = [
   {
     id: "thumbnail",
     label: "High-CTR Thumbnail Extraction",
-    logMessage: "Frame grab @ 00:04.2 · contrast boost · headline overlay",
+    logMessage: "Branded 9:16 peak thumbnail · contrast + headline (server export)",
   },
   {
     id: "gpt",

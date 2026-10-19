@@ -38,7 +38,7 @@ export function JobExportsPanel({
       <div className="grid gap-2 sm:grid-cols-2">
         {reel && downloadLink(reel, "Reel MP4 (9:16)")}
         {audioEq && downloadLink(audioEq, "ASMR audio stem (EQ wav)")}
-        {thumb && downloadLink(thumb, "Peak thumbnail")}
+        {thumb && downloadLink(thumb, "Branded peak thumbnail (9:16)")}
         {captions && downloadLink(captions, "Captions VTT")}
         {audioEq && (
           <span className="flex items-center gap-2 px-1 text-[10px] text-slate-500 sm:col-span-2">
