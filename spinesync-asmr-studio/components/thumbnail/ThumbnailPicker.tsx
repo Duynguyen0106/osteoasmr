@@ -10,8 +10,10 @@ interface ThumbnailPickerProps {
   freqGainDb?: number;
   freqKhz?: number;
   thumbUrl?: string | null;
+  thumbSource?: "pipeline" | "quick" | null;
   /** Clip-relative thumb time when set in editor (before export). */
   thumbTimeSec?: number | null;
+  serverPipeline?: boolean;
 }
 
 export function ThumbnailPicker({
@@ -22,7 +24,9 @@ export function ThumbnailPicker({
   freqGainDb,
   freqKhz,
   thumbUrl,
+  thumbSource = null,
   thumbTimeSec = null,
+  serverPipeline = false,
 }: ThumbnailPickerProps) {
   const gain =
     freqGainDb ??
@@ -33,19 +37,30 @@ export function ThumbnailPicker({
   const tsLabel = frameSec.toFixed(1).padStart(4, "0");
 
   const baked = Boolean(thumbUrl);
+  const title = baked
+    ? thumbSource === "quick"
+      ? "Quick branded thumbnail"
+      : "Branded peak thumbnail"
+    : "Thumbnail preview";
+
+  const footer = baked
+    ? thumbSource === "quick"
+      ? "9:16 JPG from quick preview API · same bake as pipeline export"
+      : "9:16 JPG from pipeline · headline and contrast baked into export"
+    : serverPipeline
+      ? `Placeholder until export or Quick thumbnail · frame @ 00:${tsLabel}s on clip${thumbTimeSec != null ? " (custom)" : ""} · Crack Peak: ${peak} dB · Gain: +${gain} dB @ ${khz}kHz`
+      : `Mock preview only · enable server pipeline for real JPG · frame @ 00:${tsLabel}s · Crack Peak: ${peak} dB · Gain: +${gain} dB @ ${khz}kHz`;
 
   return (
     <div className="glass-panel rounded-2xl p-4">
-      <h3 className="mb-3 text-sm font-semibold text-white">
-        {baked ? "Branded peak thumbnail" : "Thumbnail preview"}
-      </h3>
+      <h3 className="mb-3 text-sm font-semibold text-white">{title}</h3>
       <div className="mx-auto max-w-[200px]">
         <div className="relative aspect-[9/16] overflow-hidden rounded-xl bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900">
           {baked ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={thumbUrl!}
-              alt="Branded 9:16 peak thumbnail from pipeline export"
+              alt="Branded 9:16 peak thumbnail"
               className="absolute inset-0 h-full w-full object-cover"
             />
           ) : (
@@ -61,11 +76,7 @@ export function ThumbnailPicker({
           )}
         </div>
       </div>
-      <p className="mt-2 text-[11px] text-slate-500">
-        {baked
-          ? "9:16 JPG from pipeline · headline and contrast baked into export"
-          : `Placeholder until server pipeline · frame @ 00:${tsLabel}s on clip${thumbTimeSec != null ? " (custom)" : ""} · Crack Peak: ${peak} dB · Gain: +${gain} dB @ ${khz}kHz`}
-      </p>
+      <p className="mt-2 text-[11px] text-slate-500">{footer}</p>
     </div>
   );
 }

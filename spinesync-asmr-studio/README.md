@@ -28,6 +28,7 @@ Copy `.env.example` to `.env.local` for server mode. Requires **ffmpeg** on `PAT
 | GET | `/api/assets/:id/analyze` | ffmpeg peak time + duration (server mode) |
 | GET | `/api/jobs` | List recent jobs for current project |
 | POST | `/api/preview/reel` | Quick 9:16 ffmpeg preview (trim/zoom; skips full pipeline) |
+| POST | `/api/preview/thumb` | Quick branded 9:16 JPG from cached quick reel + `thumbTimeSec` |
 | POST | `/api/jobs` | Create job (JSON body, see `lib/contract/job.ts`) |
 | GET | `/api/jobs/:id` | Status, stages, logs, result |
 | GET | `/api/jobs/:id/stream` | SSE log/stage/complete events |

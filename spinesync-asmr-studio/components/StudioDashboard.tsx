@@ -248,8 +248,17 @@ export function StudioDashboard({
     sourceDurationSec,
     reelEdit,
     autoPeakZoom: toggles.autoPeakZoom,
+    headline: preset.headline,
     onLog: appendLog,
   });
+
+  const displayThumbUrl =
+    jobResult?.previewUrls?.thumb ?? incrementalPreview.thumbPreviewUrl ?? null;
+  const thumbSource: "pipeline" | "quick" | null = jobResult?.previewUrls?.thumb
+    ? "pipeline"
+    : incrementalPreview.thumbPreviewUrl
+      ? "quick"
+      : null;
 
   const previewVideoUrl = useMemo(() => {
     if (jobResult?.previewUrls?.reel) return jobResult.previewUrls.reel;
@@ -547,8 +556,15 @@ export function StudioDashboard({
                 ? () => void incrementalPreview.bakePreview()
                 : undefined
             }
+            onQuickThumb={
+              isServerPipeline && assetId
+                ? () => void incrementalPreview.bakeThumb()
+                : undefined
+            }
             quickPreviewLoading={incrementalPreview.loading}
             quickPreviewError={incrementalPreview.error}
+            quickThumbLoading={incrementalPreview.thumbLoading}
+            quickThumbError={incrementalPreview.thumbError}
             onBrollUpload={isServerPipeline ? handleBrollUpload : undefined}
             onBrollLog={appendLog}
             onEditChange={setReelEdit}
@@ -685,8 +701,10 @@ export function StudioDashboard({
                 peakDb={jobResult?.peak.peakDb}
                 freqGainDb={jobResult?.peak.freqGainDb}
                 freqKhz={jobResult?.peak.freqKhz}
-                thumbUrl={jobResult?.previewUrls?.thumb ?? null}
+                thumbUrl={displayThumbUrl}
+                thumbSource={thumbSource}
                 thumbTimeSec={reelEdit?.thumbTimeSec ?? null}
+                serverPipeline={isServerPipeline}
               />
             </div>
             <CopywriterTabs
