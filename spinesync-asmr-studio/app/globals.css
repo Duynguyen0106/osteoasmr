@@ -56,3 +56,9 @@ body {
 .spine-icon-glow {
   animation: pulse-glow 2.5s ease-in-out infinite;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .spine-icon-glow {
+    animation: none;
+  }
+}

@@ -28,6 +28,7 @@ export function CopywriterTabs({
 }: CopywriterTabsProps) {
   const [tab, setTab] = useState<CopyTab>("instagram");
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
   const generatedSuffix =
     copyRevision > 0
@@ -42,10 +43,17 @@ export function CopywriterTabs({
         : DEFAULT_HASHTAGS) + generatedSuffix;
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(copyText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopyError(null);
+    try {
+      await navigator.clipboard.writeText(copyText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopyError("Copy failed — check browser permissions or use HTTPS.");
+    }
   };
+
+  const tabPanelId = `copy-panel-${tab}`;
 
   return (
     <div className="glass-panel rounded-2xl p-4">
@@ -57,11 +65,19 @@ export function CopywriterTabs({
           </span>
         )}
       </div>
-      <div className="mb-3 flex flex-wrap gap-1 border-b border-slate-700/60 pb-2">
+      <div
+        role="tablist"
+        aria-label="Copywriter output format"
+        className="mb-3 flex flex-wrap gap-1 border-b border-slate-700/60 pb-2"
+      >
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            aria-controls={tabPanelId}
+            id={`copy-tab-${t.id}`}
             onClick={() => setTab(t.id)}
             className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
               tab === t.id
@@ -75,13 +91,21 @@ export function CopywriterTabs({
       </div>
       <textarea
         readOnly
+        id={tabPanelId}
+        role="tabpanel"
+        aria-labelledby={`copy-tab-${tab}`}
         value={copyText}
         rows={6}
         className="w-full resize-none rounded-lg border border-slate-700/60 bg-black/40 p-3 text-xs leading-relaxed text-slate-300"
       />
+      {copyError && (
+        <p className="mt-2 text-xs text-red-400" role="alert">
+          {copyError}
+        </p>
+      )}
       <button
         type="button"
-        onClick={handleCopy}
+        onClick={() => void handleCopy()}
         className="mt-2 flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-medium text-cyan-200 transition hover:bg-cyan-500/20"
       >
         {copied ? (

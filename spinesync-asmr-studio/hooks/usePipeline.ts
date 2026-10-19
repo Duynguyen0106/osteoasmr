@@ -112,12 +112,17 @@ export function usePipeline() {
         setPipelineComplete(true);
         appendLog("✓ Pipeline complete — assets ready for dispatch");
 
-        confetti({
-          particleCount: 80,
-          spread: 60,
-          origin: { y: 0.7 },
-          colors: ["#06b6d4", "#22d3ee", "#a855f7"],
-        });
+        const reduceMotion =
+          typeof window !== "undefined" &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (!reduceMotion) {
+          confetti({
+            particleCount: 80,
+            spread: 60,
+            origin: { y: 0.7 },
+            colors: ["#06b6d4", "#22d3ee", "#a855f7"],
+          });
+        }
       } finally {
         runningRef.current = false;
       }
