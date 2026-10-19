@@ -6,11 +6,17 @@ import { barHeight } from "@/lib/waveform";
 const BAR_COUNT = 48;
 
 export function useWaveformCanvas(
-  playbackTimeSec: number,
+  isPlaying: boolean,
   eqBoost: number,
   sfxCrack: boolean,
+  getTimeSec: () => number,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const getTimeRef = useRef(getTimeSec);
+
+  useEffect(() => {
+    getTimeRef.current = getTimeSec;
+  }, [getTimeSec]);
 
   const draw = useCallback(
     (timeSec: number) => {
@@ -53,17 +59,32 @@ export function useWaveformCanvas(
   );
 
   useEffect(() => {
-    draw(playbackTimeSec);
-  }, [playbackTimeSec, draw]);
+    draw(getTimeRef.current());
+  }, [eqBoost, sfxCrack, draw]);
+
+  useEffect(() => {
+    if (!isPlaying) {
+      draw(getTimeRef.current());
+      return;
+    }
+
+    let raf = 0;
+    const tick = () => {
+      draw(getTimeRef.current());
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [isPlaying, draw]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const observer = new ResizeObserver(() => draw(playbackTimeSec));
+    const observer = new ResizeObserver(() => draw(getTimeRef.current()));
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [draw, playbackTimeSec]);
+  }, [draw]);
 
   return canvasRef;
 }

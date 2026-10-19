@@ -27,11 +27,36 @@ export function VerticalReelPlayer({
   videoUrl,
 }: VerticalReelPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [subtitleIndex, setSubtitleIndex] = useState(0);
-  const [playbackTimeSec, setPlaybackTimeSec] = useState(0);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const timeRef = useRef(0);
+  const isPlayingRef = useRef(false);
   const mockStartRef = useRef(0);
   const mockOffsetRef = useRef(0);
+
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [subtitleIndex, setSubtitleIndex] = useState(0);
+  const [playError, setPlayError] = useState<string | null>(null);
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  const applyPeakZoom = useCallback(
+    (timeSec: number) => {
+      const el = frameRef.current;
+      if (!el) return;
+      if (!autoPeakZoom) {
+        el.style.transform = "scale(1)";
+        return;
+      }
+      const nearPeak = Math.abs(timeSec - PEAK_TIME_SEC) <= 0.35;
+      const playing = isPlayingRef.current;
+      el.style.transform = nearPeak && playing ? "scale(1.06)" : "scale(1)";
+    },
+    [autoPeakZoom],
+  );
+
+  const getTimeSec = useCallback(() => timeRef.current, []);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -54,27 +79,36 @@ export function VerticalReelPlayer({
         mockStartRef.current = now;
       }
       mockOffsetRef.current = t;
-      setPlaybackTimeSec(t);
+      timeRef.current = t;
+      applyPeakZoom(t);
       raf = requestAnimationFrame(tick);
     };
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [isPlaying, videoUrl]);
+  }, [isPlaying, videoUrl, applyPeakZoom]);
 
   const handleTimeUpdate = useCallback(() => {
     const video = videoRef.current;
-    if (video) setPlaybackTimeSec(video.currentTime);
-  }, []);
+    if (!video) return;
+    timeRef.current = video.currentTime;
+    applyPeakZoom(video.currentTime);
+  }, [applyPeakZoom]);
 
   const togglePlay = useCallback(async () => {
+    setPlayError(null);
     const video = videoRef.current;
     if (videoUrl && video) {
-      if (video.paused) {
-        await video.play();
-        setIsPlaying(true);
-      } else {
-        video.pause();
+      try {
+        if (video.paused) {
+          await video.play();
+          setIsPlaying(true);
+        } else {
+          video.pause();
+          setIsPlaying(false);
+        }
+      } catch {
+        setPlayError("Playback blocked — try clicking play again.");
         setIsPlaying(false);
       }
       return;
@@ -82,19 +116,19 @@ export function VerticalReelPlayer({
     setIsPlaying((p) => !p);
   }, [videoUrl]);
 
+  useEffect(() => {
+    if (!isPlaying) applyPeakZoom(timeRef.current);
+  }, [isPlaying, applyPeakZoom]);
+
   const subtitle = preset.subtitles[subtitleIndex];
-  const nearPeak = Math.abs(playbackTimeSec - PEAK_TIME_SEC) <= 0.35;
-  const zoomClass =
-    autoPeakZoom && nearPeak && isPlaying
-      ? "scale-[1.06] transition-transform duration-300"
-      : "scale-100 transition-transform duration-300";
 
   return (
     <div className="glass-panel rounded-2xl p-4">
       <h3 className="mb-3 text-sm font-semibold text-white">9:16 Reel Preview</h3>
       <div className="mx-auto max-w-[280px]">
         <div
-          className={`neon-border relative aspect-[9/16] overflow-hidden rounded-2xl bg-gradient-to-b from-slate-800 via-slate-900 to-black ${zoomClass}`}
+          ref={frameRef}
+          className="neon-border relative aspect-[9/16] overflow-hidden rounded-2xl bg-gradient-to-b from-slate-800 via-slate-900 to-black transition-transform duration-300"
         >
           {videoUrl ? (
             <video
@@ -136,9 +170,10 @@ export function VerticalReelPlayer({
           <SubtitleOverlay text={subtitle} enabled={tiktokSubs} />
 
           <WaveformCanvas
-            playbackTimeSec={playbackTimeSec}
+            isPlaying={isPlaying}
             eqBoost={eqBoost}
             sfxCrack={sfxCrack}
+            getTimeSec={getTimeSec}
           />
 
           <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/90 to-transparent p-3 pt-8 text-center text-[10px] text-slate-200">
@@ -148,6 +183,7 @@ export function VerticalReelPlayer({
           <button
             type="button"
             aria-pressed={isPlaying}
+            aria-label={isPlaying ? "Pause preview" : "Play preview"}
             onClick={() => void togglePlay()}
             className="absolute left-1/2 top-1/2 z-30 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-cyan-400/40 bg-black/50 text-white backdrop-blur-sm transition hover:bg-cyan-500/20"
           >
@@ -158,6 +194,11 @@ export function VerticalReelPlayer({
             )}
           </button>
         </div>
+        {playError && (
+          <p className="mt-2 text-center text-xs text-amber-400" role="alert">
+            {playError}
+          </p>
+        )}
         <p className="mt-2 text-center font-mono text-[10px] text-slate-500">
           1080×1920 scaled preview · peak @ 00:04.2
           {videoUrl ? " · live ingest" : ""}
