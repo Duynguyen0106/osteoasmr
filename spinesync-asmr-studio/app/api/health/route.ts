@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { NextResponse } from "next/server";
 import { execFile } from "child_process";
 import { promisify } from "util";
@@ -21,6 +22,7 @@ import { getStorage } from "@/lib/server/storage";
 const execFileAsync = promisify(execFile);
 
 export async function GET() {
+  await connection();
   let ffmpeg = false;
   try {
     await execFileAsync("ffmpeg", ["-version"]);

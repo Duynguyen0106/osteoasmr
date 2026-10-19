@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ensureDefaultProject, resolveProjectIdOrNull } from "@/lib/server/auth";
@@ -9,6 +10,7 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+  await connection();
   ensureDefaultProject();
 
   let projectId = ensureDefaultProject().id;
