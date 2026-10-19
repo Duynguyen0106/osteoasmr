@@ -1,6 +1,6 @@
 "use client";
 
-import { Pause, Play } from "lucide-react";
+import { Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CaptionSegment } from "@/lib/contract/job";
 import { SubtitleOverlay } from "./SubtitleOverlay";
@@ -48,6 +48,7 @@ export function VerticalReelPlayer({
   const playError =
     mediaError && mediaError.url === videoUrl ? mediaError.message : null;
   const [displayTimeSec, setDisplayTimeSec] = useState(0);
+  const [soundOn, setSoundOn] = useState(true);
   const hasKaraoke = Boolean(captionSegments?.length);
 
   useEffect(() => {
@@ -110,12 +111,31 @@ export function VerticalReelPlayer({
     applyPeakZoom(video.currentTime);
   }, [applyPeakZoom, hasKaraoke]);
 
+  const applySoundToVideo = useCallback(
+    (video: HTMLVideoElement, enabled: boolean) => {
+      video.muted = !enabled;
+      video.volume = enabled ? 1 : 0;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !videoUrl) return;
+    applySoundToVideo(video, soundOn);
+  }, [videoUrl, soundOn, applySoundToVideo]);
+
+  const toggleSound = useCallback(() => {
+    setSoundOn((on) => !on);
+  }, []);
+
   const togglePlay = useCallback(async () => {
     setMediaError(null);
     const video = videoRef.current;
     if (videoUrl && video) {
       try {
         if (video.paused) {
+          applySoundToVideo(video, soundOn);
           await video.play();
           setIsPlaying(true);
         } else {
@@ -134,7 +154,7 @@ export function VerticalReelPlayer({
       return;
     }
     setIsPlaying((p) => !p);
-  }, [videoUrl]);
+  }, [videoUrl, soundOn, applySoundToVideo]);
 
   useEffect(() => {
     if (!isPlaying) applyPeakZoom(timeRef.current);
@@ -173,7 +193,6 @@ export function VerticalReelPlayer({
               src={videoUrl}
               className="absolute inset-0 h-full w-full object-cover"
               playsInline
-              muted
               loop
               onTimeUpdate={handleTimeUpdate}
               onPlay={() => setIsPlaying(true)}
@@ -224,6 +243,22 @@ export function VerticalReelPlayer({
             📍 SpineSync Clinic | Book Link in Bio
           </div>
 
+          {videoUrl && (
+            <button
+              type="button"
+              aria-pressed={soundOn}
+              aria-label={soundOn ? "Mute preview audio" : "Unmute preview audio"}
+              onClick={toggleSound}
+              className="absolute bottom-16 right-3 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-cyan-400/30 bg-black/55 text-white backdrop-blur-sm transition hover:bg-cyan-500/20"
+            >
+              {soundOn ? (
+                <Volume2 className="h-4 w-4" aria-hidden />
+              ) : (
+                <VolumeX className="h-4 w-4" aria-hidden />
+              )}
+            </button>
+          )}
+
           <button
             type="button"
             aria-pressed={isPlaying}
@@ -247,6 +282,7 @@ export function VerticalReelPlayer({
           1080×1920 scaled preview · peak @ 00:
           {peakTimeSec.toFixed(1)}s
           {videoUrl ? " · live ingest" : ""}
+          {videoUrl && soundOn ? " · audio on" : videoUrl ? " · muted" : ""}
         </p>
       </div>
     </div>

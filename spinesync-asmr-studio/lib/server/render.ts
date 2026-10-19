@@ -36,6 +36,8 @@ export async function renderReel916(options: {
     const args = ["-i", sourcePath];
     if (audioEqPath && (await fileExists(audioEqPath))) {
       args.push("-i", audioEqPath, "-map", "0:v", "-map", "1:a");
+    } else {
+      args.push("-map", "0:v", "-map", "0:a?");
     }
     args.push(
       "-vf",
