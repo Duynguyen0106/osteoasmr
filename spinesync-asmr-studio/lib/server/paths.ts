@@ -1,6 +1,8 @@
 import path from "path";
 
-export const DATA_ROOT = path.join(process.cwd(), ".data");
+export const DATA_ROOT = process.env.SPINESYNC_DATA_ROOT?.trim()
+  ? path.resolve(process.env.SPINESYNC_DATA_ROOT)
+  : path.join(process.cwd(), ".data");
 export const DB_PATH = path.join(DATA_ROOT, "spinesync.db");
 export const UPLOAD_ROOT = path.join(DATA_ROOT, "uploads");
 

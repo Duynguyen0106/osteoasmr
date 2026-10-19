@@ -285,6 +285,17 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
     [jobId, appendLog],
   );
 
+  const refreshJobMedia = useCallback(async () => {
+    if (!jobId) return;
+    const res = await spinesyncFetch(`/api/jobs/${jobId}`);
+    if (!res.ok) return;
+    const data = (await res.json()) as { result: JobResult | null };
+    if (data.result) {
+      setJobResult(data.result);
+      if (data.result.copy) setServerCopy(data.result.copy);
+    }
+  }, [jobId]);
+
   return {
     pipeline,
     logs,
@@ -296,5 +307,6 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
     serverCopy,
     jobId,
     publish,
+    refreshJobMedia,
   };
 }

@@ -63,6 +63,9 @@ export function StudioDashboard() {
 
   const jobResult = isServerPipeline ? server.jobResult : null;
   const serverCopy = isServerPipeline ? server.serverCopy : null;
+  const refreshJobMedia = isServerPipeline
+    ? server.refreshJobMedia
+    : undefined;
 
   const preset = getActivePreset(presetId, focus);
   const peakTimeSec = jobResult?.peak.timeSec ?? PEAK_TIME_SEC;
@@ -251,6 +254,13 @@ export function StudioDashboard() {
               videoUrl={previewVideoUrl}
               peakTimeSec={peakTimeSec}
               captionSegments={jobResult?.captionSegments ?? null}
+              onRefreshMedia={
+                refreshJobMedia
+                  ? () => {
+                      void refreshJobMedia();
+                    }
+                  : undefined
+              }
             />
             <div className="grid gap-4 md:grid-cols-2">
               <PeakSoundAnalytics

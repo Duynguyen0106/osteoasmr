@@ -36,8 +36,14 @@ export async function POST(request: Request) {
 
     if (jobExecutor() === "inline") {
       enqueueJob(jobId, config);
-    } else if (redisQueueEnabled()) {
-      await enqueueRedisJob(jobId);
+    } else if (jobExecutor() === "worker" && redisQueueEnabled()) {
+      try {
+        await enqueueRedisJob(jobId);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to enqueue job on Redis";
+        return NextResponse.json({ error: message }, { status: 503 });
+      }
     }
 
     return NextResponse.json({

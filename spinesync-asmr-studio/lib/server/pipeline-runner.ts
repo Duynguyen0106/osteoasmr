@@ -22,7 +22,7 @@ import {
   updateJobStage,
 } from "./job-service";
 import { generateGptCopy, headlineForConfig, prepareWhisperAudio, transcribeWhisper } from "./openai";
-import { hasOpenAI, remotionRenderMode } from "./config";
+import { hasOpenAI, remotionRenderMode, remotionRenderRequested } from "./config";
 import { jobDir } from "./paths";
 import { buildJobPreviewUrls, publishJobArtifactsToStorage } from "./job-artifacts";
 import { renderReel916 } from "./render";
@@ -131,7 +131,14 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
           appendJobLog(jobId, stage.logMessage);
         }
       } else if (stageId === "remotion") {
+        const remotionRequested = remotionRenderRequested();
         const remotionMode = remotionRenderMode();
+        if (remotionRequested === "lambda") {
+          appendJobLog(
+            jobId,
+            "Remotion Lambda is not deployed in this repo — using ffmpeg 9:16 render",
+          );
+        }
         let rendered = false;
         if (remotionMode === "local" && sourcePath) {
           try {

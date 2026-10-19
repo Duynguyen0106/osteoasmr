@@ -18,6 +18,7 @@ interface VerticalReelPlayerProps {
   videoUrl: string | null;
   peakTimeSec: number;
   captionSegments?: CaptionSegment[] | null;
+  onRefreshMedia?: () => void;
 }
 
 export function VerticalReelPlayer({
@@ -29,6 +30,7 @@ export function VerticalReelPlayer({
   videoUrl,
   peakTimeSec,
   captionSegments,
+  onRefreshMedia,
 }: VerticalReelPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -39,7 +41,12 @@ export function VerticalReelPlayer({
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [subtitleIndex, setSubtitleIndex] = useState(0);
-  const [playError, setPlayError] = useState<string | null>(null);
+  const [mediaError, setMediaError] = useState<{
+    url: string;
+    message: string;
+  } | null>(null);
+  const playError =
+    mediaError && mediaError.url === videoUrl ? mediaError.message : null;
   const [displayTimeSec, setDisplayTimeSec] = useState(0);
   const hasKaraoke = Boolean(captionSegments?.length);
 
@@ -104,7 +111,7 @@ export function VerticalReelPlayer({
   }, [applyPeakZoom, hasKaraoke]);
 
   const togglePlay = useCallback(async () => {
-    setPlayError(null);
+    setMediaError(null);
     const video = videoRef.current;
     if (videoUrl && video) {
       try {
@@ -116,7 +123,12 @@ export function VerticalReelPlayer({
           setIsPlaying(false);
         }
       } catch {
-        setPlayError("Playback blocked — try clicking play again.");
+        if (videoUrl) {
+          setMediaError({
+            url: videoUrl,
+            message: "Playback blocked — try clicking play again.",
+          });
+        }
         setIsPlaying(false);
       }
       return;
@@ -127,6 +139,23 @@ export function VerticalReelPlayer({
   useEffect(() => {
     if (!isPlaying) applyPeakZoom(timeRef.current);
   }, [isPlaying, applyPeakZoom]);
+
+  useEffect(() => {
+    if (!videoUrl?.includes("exp=") || !onRefreshMedia) return;
+    const intervalMs = 45 * 60 * 1000;
+    const id = window.setInterval(() => onRefreshMedia(), intervalMs);
+    return () => window.clearInterval(id);
+  }, [videoUrl, onRefreshMedia]);
+
+  const handleVideoError = useCallback(() => {
+    if (videoUrl) {
+      setMediaError({
+        url: videoUrl,
+        message: "Preview link expired — refreshing…",
+      });
+    }
+    onRefreshMedia?.();
+  }, [onRefreshMedia, videoUrl]);
 
   const subtitle = preset.subtitles[subtitleIndex];
 
@@ -149,6 +178,7 @@ export function VerticalReelPlayer({
               onTimeUpdate={handleTimeUpdate}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
+              onError={handleVideoError}
             />
           ) : (
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(6,182,212,0.12),transparent_55%)]" />

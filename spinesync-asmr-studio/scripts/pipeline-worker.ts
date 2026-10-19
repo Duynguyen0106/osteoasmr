@@ -13,16 +13,16 @@ import { claimRedisJobId, redisQueueEnabled } from "../lib/server/redis-queue";
 
 async function tick() {
   if (redisQueueEnabled()) {
-    const jobId = await claimRedisJobId(2);
-    if (!jobId) return false;
-    const job = tryClaimJobById(jobId);
-    if (!job) return false;
-    const config = JSON.parse(job.configJson) as CreateJobBody;
-    await runJobPipeline(job.id, config);
-    return true;
-  }
-
-  if (jobQueueBackend() === "redis") {
+    const jobId = await claimRedisJobId(1);
+    if (jobId) {
+      const job = tryClaimJobById(jobId);
+      if (job) {
+        const config = JSON.parse(job.configJson) as CreateJobBody;
+        await runJobPipeline(job.id, config);
+        return true;
+      }
+    }
+  } else if (jobQueueBackend() === "redis") {
     console.warn("JOB_QUEUE_BACKEND=redis but REDIS_URL missing — using SQLite poll");
   }
 

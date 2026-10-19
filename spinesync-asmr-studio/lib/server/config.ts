@@ -40,7 +40,14 @@ export function jobExecutor(): "inline" | "worker" {
   return process.env.JOB_EXECUTOR === "worker" ? "worker" : "inline";
 }
 
-export function remotionRenderMode(): "off" | "local" | "lambda" {
+/** Active render path (Remotion Lambda is not deployed — see remotionRenderRequested). */
+export function remotionRenderMode(): "off" | "local" {
+  const v = remotionRenderRequested();
+  if (v === "local") return "local";
+  return "off";
+}
+
+export function remotionRenderRequested(): "off" | "local" | "lambda" {
   const v = process.env.REMOTION_RENDER?.toLowerCase();
   if (v === "local" || v === "lambda") return v;
   return "off";

@@ -11,6 +11,7 @@ import {
   jobExecutor,
   jobQueueBackend,
   remotionRenderMode,
+  remotionRenderRequested,
   requireApiKey,
   storageDriverEnv,
 } from "@/lib/server/config";
@@ -49,6 +50,8 @@ export async function GET() {
     },
     remotion: {
       mode: remotionRenderMode(),
+      requested: remotionRenderRequested(),
+      lambdaDeployed: false,
     },
     auth: {
       defaultProjectId,

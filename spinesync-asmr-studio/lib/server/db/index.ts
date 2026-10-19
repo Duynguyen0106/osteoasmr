@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import fs from "fs";
 import { DATA_ROOT, DB_PATH } from "../paths";
 import * as schema from "./schema";
+import { validateProductionSecrets } from "../startup";
 
 function columnExists(sqlite: Database.Database, table: string, column: string) {
   const cols = sqlite
@@ -73,7 +74,16 @@ const globalForDb = globalThis as unknown as {
   db?: ReturnType<typeof drizzle>;
 };
 
+export function resetDbForTests() {
+  if (globalForDb.sqlite) {
+    globalForDb.sqlite.close();
+  }
+  globalForDb.sqlite = undefined;
+  globalForDb.db = undefined;
+}
+
 export function getDb() {
+  validateProductionSecrets();
   if (!globalForDb.db) {
     fs.mkdirSync(DATA_ROOT, { recursive: true });
     const sqlite = new Database(DB_PATH);
