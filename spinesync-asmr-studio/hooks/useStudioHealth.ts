@@ -5,6 +5,8 @@ import { spinesyncFetch } from "@/lib/api-client";
 
 export interface StudioHealth {
   ffmpeg: boolean;
+  pipelineBlockers?: string[];
+  ffmpegDetail?: { error?: string | null };
   hosting?: {
     vercel?: boolean;
     serverless?: boolean;

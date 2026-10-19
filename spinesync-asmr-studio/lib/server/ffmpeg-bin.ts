@@ -1,3 +1,4 @@
+import { access } from "fs/promises";
 import { execFile } from "child_process";
 import { createRequire } from "module";
 import { promisify } from "util";
@@ -29,22 +30,68 @@ export function ffprobeExecutable(): string {
   return "ffprobe";
 }
 
+function execErrorMessage(err: unknown): string {
+  if (err instanceof Error) {
+    const code = "code" in err ? String((err as NodeJS.ErrnoException).code) : "";
+    return code ? `${err.message} (${code})` : err.message;
+  }
+  return "exec failed";
+}
+
 export async function checkFfmpegAvailable(): Promise<{
   ok: boolean;
   ffmpegPath: string;
   ffprobePath: string;
   bundled: boolean;
+  error?: string;
 }> {
   const ffmpegPath = ffmpegExecutable();
   const ffprobePath = ffprobeExecutable();
   const bundled =
     ffmpegPath.includes("node_modules") || ffprobePath.includes("node_modules");
+
+  for (const [label, binPath] of [
+    ["ffmpeg", ffmpegPath],
+    ["ffprobe", ffprobePath],
+  ] as const) {
+    try {
+      await access(binPath);
+    } catch {
+      return {
+        ok: false,
+        ffmpegPath,
+        ffprobePath,
+        bundled,
+        error: `${label} binary missing at ${binPath}`,
+      };
+    }
+  }
+
   try {
     await execFileAsync(ffmpegPath, ["-version"]);
-    return { ok: true, ffmpegPath, ffprobePath, bundled };
-  } catch {
-    return { ok: false, ffmpegPath, ffprobePath, bundled };
+  } catch (err) {
+    return {
+      ok: false,
+      ffmpegPath,
+      ffprobePath,
+      bundled,
+      error: `ffmpeg: ${execErrorMessage(err)}`,
+    };
   }
+
+  try {
+    await execFileAsync(ffprobePath, ["-version"]);
+  } catch (err) {
+    return {
+      ok: false,
+      ffmpegPath,
+      ffprobePath,
+      bundled,
+      error: `ffprobe: ${execErrorMessage(err)}`,
+    };
+  }
+
+  return { ok: true, ffmpegPath, ffprobePath, bundled };
 }
 
 export function isEphemeralHosting(): boolean {

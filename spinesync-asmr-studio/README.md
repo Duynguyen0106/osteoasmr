@@ -100,6 +100,16 @@ ASMR sound architecture and roadmap: [`docs/ASMR-SOUND.md`](docs/ASMR-SOUND.md).
 
 Check `/api/health` for `storage`, `queue`, `remotion`, and `auth` blocks.
 
+## Vercel production (Track A)
+
+See [`docs/PRODUCTION-GO-LIVE.md`](docs/PRODUCTION-GO-LIVE.md) for required env vars (S3, secrets, `APP_BASE_URL`). After deploy:
+
+```bash
+npm run check:production
+```
+
+Expect `ffmpeg: true`, `hosting.pipelineReady: true`, and `pipelineBlockers: []`.
+
 ## Security & production hardening
 
 | Control | Behavior |
