@@ -132,7 +132,7 @@ Explicitly **out of scope** for Phase 2 unless product asks: multi-user review, 
 
 ## 8. Phase 2 entry checklist
 
-- [ ] Merge **PR #7** (+ pre-phase-2 checklist branch) to `main`
+- [x] Merge **PR #7** (+ pre-phase-2 checklist) to `main` (2026-10-19)
 - [ ] Smoke: upload → Editor → trim + peak → server pipeline → reel matches trim
 - [x] Fix **P0.1** caption/trim timebase — `lib/reel-edit/captions.ts`, pipeline export filter
 - [x] Fix **P0.2** video duration on ruler — `onSourceDurationSec` from preview video metadata
