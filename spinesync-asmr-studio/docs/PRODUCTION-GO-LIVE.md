@@ -66,6 +66,10 @@ Optional but recommended:
 
 ## 3. Verify after deploy
 
+**Production (verified 2026-10-19):** https://spinesync-asmr-studio.vercel.app — `npm run check:production` passes with Blob storage and bundled ffmpeg.
+
+Optional: set `SPINESYNC_DEFAULT_API_KEY` on Vercel so session bootstrap works without pasting a key on every cold start (ephemeral SQLite seeds one project per instance otherwise).
+
 ```bash
 cd spinesync-asmr-studio
 npm run check:production
