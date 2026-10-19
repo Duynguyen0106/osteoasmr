@@ -9,11 +9,11 @@
   "functions": {
     "app/api/jobs/**": {
       "maxDuration": 300,
-      "memory": 3009
+      "memory": 2048
     },
     "app/api/preview/**": {
       "maxDuration": 120,
-      "memory": 3009
+      "memory": 2048
     },
     "app/api/assets/**": {
       "maxDuration": 60,
