@@ -35,8 +35,11 @@ interface ReelProEditorProps {
   durationMismatchDetail?: string;
   exportsEditsToPipeline?: boolean;
   onQuickPreview?: () => void;
+  onQuickThumb?: () => void;
   quickPreviewLoading?: boolean;
   quickPreviewError?: string | null;
+  quickThumbLoading?: boolean;
+  quickThumbError?: string | null;
   onBrollUpload?: (
     file: File,
   ) => Promise<{ assetId: string; label: string } | null>;
@@ -56,8 +59,11 @@ export function ReelProEditor({
   durationMismatchDetail,
   exportsEditsToPipeline = true,
   onQuickPreview,
+  onQuickThumb,
   quickPreviewLoading = false,
   quickPreviewError = null,
+  quickThumbLoading = false,
+  quickThumbError = null,
   onBrollUpload,
   onBrollLog,
   onEditChange,
@@ -162,6 +168,16 @@ export function ReelProEditor({
               {quickPreviewLoading ? "Baking preview…" : "Quick ffmpeg preview"}
             </button>
           )}
+          {exportsEditsToPipeline && onQuickThumb && (
+            <button
+              type="button"
+              disabled={quickThumbLoading}
+              className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold text-amber-100 hover:bg-amber-500/20 disabled:opacity-50"
+              onClick={() => onQuickThumb()}
+            >
+              {quickThumbLoading ? "Baking thumb…" : "Quick thumbnail"}
+            </button>
+          )}
           <button
             type="button"
             className="rounded-lg border border-slate-600/50 p-1.5 text-slate-300 hover:bg-slate-800"
@@ -179,8 +195,10 @@ export function ReelProEditor({
             <Redo2 className="h-4 w-4" />
           </button>
         </div>
-        {quickPreviewError && (
-          <p className="text-[10px] text-amber-200/90">{quickPreviewError}</p>
+        {(quickPreviewError || quickThumbError) && (
+          <p className="text-[10px] text-amber-200/90">
+            {[quickPreviewError, quickThumbError].filter(Boolean).join(" · ")}
+          </p>
         )}
       </div>
 
