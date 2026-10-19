@@ -91,7 +91,8 @@ export function StudioDashboard() {
     [appendLog],
   );
 
-  const canRunPipeline = Boolean(file || presetId);
+  // Adaptive focus profile counts as a valid source when no preset/file is selected.
+  const canRunPipeline = Boolean(file || presetId || focus);
 
   return (
     <div className="relative min-h-screen pb-12">
