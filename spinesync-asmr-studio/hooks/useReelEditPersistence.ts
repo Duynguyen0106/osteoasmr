@@ -48,15 +48,7 @@ export function useReelEditPersistence(options: {
       onRestore(loaded);
       onRestoredLog?.();
     }
-  }, [
-    assetId,
-    file?.name,
-    file?.size,
-    file?.lastModified,
-    sourceDurationSec,
-    onRestore,
-    onRestoredLog,
-  ]);
+  }, [assetId, file, sourceDurationSec, onRestore, onRestoredLog]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
