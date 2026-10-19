@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "spinesync-asmr-studio/**"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    paths:
+      - "spinesync-asmr-studio/**"
+      - ".github/workflows/ci.yml"
+
+defaults:
+  run:
+    working-directory: spinesync-asmr-studio
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: spinesync-asmr-studio/package-lock.json
+      - run: npm ci
+      - run: npm rebuild better-sqlite3
+      - run: npm run lint
+      # api-integration hits better-sqlite3 SIGSEGV on ubuntu-latest; run full `npm test` locally
+      - run: npm run test:unit
+      - run: npm run build
