@@ -132,6 +132,7 @@ Explicitly **out of scope** for Phase 2 unless product asks: multi-user review, 
 
 ## 8. Phase 2 entry checklist
 
+- [x] Phase **2.1–2.6** shipped via PRs **#9–#14** (caption timeline → incremental preview)
 - [x] Merge **PR #7** (+ pre-phase-2 checklist) to `main` (2026-10-19)
 - [ ] Smoke: upload → Editor → trim + peak → server pipeline → reel matches trim
 - [x] Fix **P0.1** caption/trim timebase — `lib/reel-edit/captions.ts`, pipeline export filter
@@ -183,6 +184,14 @@ When smoke is checked, proceed to Phase 2.2 (edit persistence / asset store).
 - [x] Tab switches update URL (`/` ↔ `/editor` ↔ job edit when a job is active)
 - [x] Job history row includes editor deep link
 - [ ] Manual smoke: share `/jobs/{id}/edit` → recipient sees job media + edit restored
+
+### Phase 2.6 — incremental preview
+
+- [x] `POST /api/preview/reel` — trim + 9:16 ffmpeg preview (no Whisper/GPT/thumb stages)
+- [x] Content-addressed cache under `uploads/previews/{cacheId}/reel.mp4`
+- [x] Editor **Quick ffmpeg preview** button (server mode + uploaded asset)
+- [x] Preview player swaps to baked reel URL; skips live Web Audio sculpt on baked output
+- [ ] Manual smoke: trim in editor → quick preview → 9:16 matches trim (no full pipeline)
 
 ---
 

@@ -10,6 +10,8 @@ export async function renderReel916(options: {
   peakTimeSec: number;
   autoPeakZoom: boolean;
   zoomIntensity?: number;
+  /** Faster encode for editor incremental preview (no EQ pass). */
+  fastPreview?: boolean;
 }) {
   const {
     sourcePath,
@@ -20,6 +22,7 @@ export async function renderReel916(options: {
     peakTimeSec,
     autoPeakZoom,
     zoomIntensity = 100,
+    fastPreview = false,
   } = options;
   const zoomScale = 1 + (Math.max(0, Math.min(100, zoomIntensity)) / 100) * 0.12;
 
@@ -48,13 +51,13 @@ export async function renderReel916(options: {
       "-c:v",
       "libx264",
       "-preset",
-      "veryfast",
+      fastPreview ? "ultrafast" : "veryfast",
       "-crf",
-      "23",
+      fastPreview ? "28" : "23",
       "-c:a",
       "aac",
       "-b:a",
-      "192k",
+      fastPreview ? "128k" : "192k",
       "-shortest",
       reelPath,
     );
