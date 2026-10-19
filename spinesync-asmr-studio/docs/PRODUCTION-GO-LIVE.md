@@ -105,5 +105,5 @@ Vercel `maxDuration` is raised in `vercel.json` for job/preview routes (Pro plan
 |---------|-----|
 | `ffmpeg: false`, error “binary missing” | Redeploy after `outputFileTracingIncludes` in `next.config.ts`; or set `FFMPEG_PATH` / `FFPROBE_PATH` |
 | `pipelineReady: false`, local storage on Vercel | Set `STORAGE_DRIVER=s3` and AWS vars |
-| GitHub “Deployment rate limited” | Wait 24h or redeploy once from Vercel dashboard |
+| GitHub “Deployment rate limited” | Wait for daily quota reset (~24h). Use **Deploy Hook** (`npm run vercel:deploy`) or push to `main` — **do not** `vercel deploy` from `spinesync-asmr-studio/` alone (breaks monorepo root). Disconnect duplicate **osteoasmr** Vercel project to avoid double deploys. |
 | Pipeline starts then times out | Worker + Redis, or shorter source clip |
