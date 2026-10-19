@@ -1,15 +1,16 @@
 import fs from "fs";
 import path from "path";
-import { UPLOAD_ROOT } from "../paths";
+import { uploadRoot } from "../paths";
 import type { StorageProvider } from "./types";
 
 export class LocalStorageProvider implements StorageProvider {
   driver = "local" as const;
 
   private resolve(key: string) {
-    const full = path.join(UPLOAD_ROOT, key);
+    const root = uploadRoot();
+    const full = path.join(root, key);
     const resolved = path.resolve(full);
-    if (!resolved.startsWith(path.resolve(UPLOAD_ROOT))) {
+    if (!resolved.startsWith(path.resolve(root))) {
       throw new Error("Invalid storage key");
     }
     return resolved;

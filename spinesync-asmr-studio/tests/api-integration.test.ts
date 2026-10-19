@@ -76,6 +76,7 @@ test("media path without token or auth returns unauthorized", async () => {
       SPINESYNC_SKIP_SECRET_VALIDATION: "1",
     },
     () => {
+      resetDbForTests();
       const req = new Request(
         "http://localhost/api/media/jobs/fake-job-id/reel.mp4",
       );
@@ -94,6 +95,7 @@ test("bootstrap returns 401 in strict mode without credentials", async () => {
       SPINESYNC_SKIP_SECRET_VALIDATION: "1",
     },
     async () => {
+      resetDbForTests();
       const res = await bootstrapPost(
         new Request("http://localhost/api/auth/bootstrap", {
           method: "POST",
@@ -113,6 +115,7 @@ test("lenient mode resolves default project", async () => {
       NODE_ENV: "development",
     },
     () => {
+      resetDbForTests();
       const projectId = resolveProjectFromRequest(
         new Request("http://localhost/api/health"),
       );

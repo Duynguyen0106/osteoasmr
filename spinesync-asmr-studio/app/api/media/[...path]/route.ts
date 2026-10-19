@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { NextResponse } from "next/server";
 import { assertMediaAccess } from "@/lib/server/access";
-import { UPLOAD_ROOT } from "@/lib/server/paths";
+import { uploadRoot } from "@/lib/server/paths";
 
 const MIME: Record<string, string> = {
   ".mp4": "video/mp4",
@@ -27,9 +27,10 @@ export async function GET(
   const accessError = assertMediaAccess(request, relative);
   if (accessError) return accessError;
 
-  const filePath = path.join(UPLOAD_ROOT, relative);
+  const root = uploadRoot();
+  const filePath = path.join(root, relative);
   const resolved = path.resolve(filePath);
-  if (!resolved.startsWith(path.resolve(UPLOAD_ROOT))) {
+  if (!resolved.startsWith(path.resolve(root))) {
     return NextResponse.json({ error: "Invalid path" }, { status: 400 });
   }
 

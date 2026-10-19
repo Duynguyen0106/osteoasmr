@@ -21,8 +21,9 @@ Ingest (MP4/MOV)
 | **Profiles** | Focus → center Hz, bandwidth, display | `lib/asmr-profiles.ts` |
 | **Analysis** | Peak time, envelope | Web Audio (`useSourceAudioProfile`), ffmpeg (`analyze`, `detectPeakTimeSec`) |
 | **Sculpt (server)** | Master EQ + crack mix | `lib/server/audio-eq.ts` |
-| **Sculpt (preview)** | Live peaking EQ on `<video>` | `hooks/useLiveAsmrAudio.ts` |
-| **Visual** | Waveform + peak marker | `WaveformCanvas`, `ReelScrubber`, analytics |
+| **Sculpt (preview)** | Live EQ + scheduled crack @ peak | `hooks/useLiveAsmrAudio.ts`, `lib/crack-samples.ts` |
+| **Visual** | Waveform + peak marker | `WaveformCanvas`, shared worker, `ReelScrubber` |
+| **Presets** | Per-project sculpt settings | `asmr_presets` SQLite, `/api/asmr-presets` |
 | **Export** | Reel uses EQ audio | `render.ts` + pipeline |
 
 ## Phases

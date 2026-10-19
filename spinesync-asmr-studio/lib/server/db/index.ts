@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import fs from "fs";
-import { DATA_ROOT, DB_PATH } from "../paths";
+import { dataRoot, dbPath } from "../paths";
 import * as schema from "./schema";
 import { validateProductionSecrets } from "../startup";
 
@@ -92,6 +92,7 @@ function ensureSchema(sqlite: Database.Database) {
 const globalForDb = globalThis as unknown as {
   sqlite?: Database.Database;
   db?: ReturnType<typeof drizzle>;
+  dataRoot?: string;
 };
 
 export function resetDbForTests() {
@@ -100,16 +101,23 @@ export function resetDbForTests() {
   }
   globalForDb.sqlite = undefined;
   globalForDb.db = undefined;
+  globalForDb.dataRoot = undefined;
 }
 
 export function getDb() {
   validateProductionSecrets();
+  const root = dataRoot();
+  const databasePath = dbPath();
+  if (globalForDb.db && globalForDb.dataRoot !== root) {
+    resetDbForTests();
+  }
   if (!globalForDb.db) {
-    fs.mkdirSync(DATA_ROOT, { recursive: true });
-    const sqlite = new Database(DB_PATH);
+    fs.mkdirSync(root, { recursive: true });
+    const sqlite = new Database(databasePath);
     ensureSchema(sqlite);
     globalForDb.sqlite = sqlite;
     globalForDb.db = drizzle(sqlite, { schema });
+    globalForDb.dataRoot = root;
   }
   return globalForDb.db;
 }
