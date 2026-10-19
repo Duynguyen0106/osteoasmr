@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
   "buildCommand": "npm run build",
-  "installCommand": "npm install",
+  "installCommand": "npm ci && npm rebuild better-sqlite3",
   "env": {
     "NEXT_PUBLIC_PIPELINE_MODE": "server",
     "SPINESYNC_DATA_ROOT": "/tmp/spinesync"
