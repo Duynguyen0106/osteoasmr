@@ -101,9 +101,13 @@ Check `/api/health` for `storage`, `queue`, `remotion`, and `auth` blocks.
 
 ## Vercel production (Track A)
 
-See [`docs/PRODUCTION-GO-LIVE.md`](docs/PRODUCTION-GO-LIVE.md) for required env vars (S3, secrets, `APP_BASE_URL`). After deploy:
+See [`docs/PRODUCTION-GO-LIVE.md`](docs/PRODUCTION-GO-LIVE.md) and [`docs/S3-PRODUCTION-SETUP.md`](docs/S3-PRODUCTION-SETUP.md). Sync env + inspect deploys:
 
 ```bash
+cp .env.vercel.production.example .env.vercel.production   # fill AWS keys
+VERCEL_TOKEN=... npm run vercel:sync-env
+VERCEL_TOKEN=... npm run vercel:deploy
+VERCEL_TOKEN=... npm run vercel:status
 npm run check:production
 ```
 

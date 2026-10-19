@@ -1,2 +1,4 @@
 .vercel
 .env*
+!.env.vercel.production.example
+spinesync-asmr-studio/.env.vercel.production

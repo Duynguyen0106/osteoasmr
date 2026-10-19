@@ -24,7 +24,11 @@ export function storageDriverEnv(): "local" | "s3" {
 }
 
 export function hasS3Config(): boolean {
-  return Boolean(process.env.AWS_S3_BUCKET?.trim() && s3Region());
+  const bucket = process.env.AWS_S3_BUCKET?.trim();
+  const region = s3Region()?.trim();
+  const accessKey = process.env.AWS_ACCESS_KEY_ID?.trim();
+  const secret = process.env.AWS_SECRET_ACCESS_KEY?.trim();
+  return Boolean(bucket && region && accessKey && secret);
 }
 
 export function s3Region(): string {

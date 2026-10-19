@@ -20,6 +20,17 @@ Prefer **one** Vercel project (`spinesync-asmr-studio`) linked to this repo. Dis
 
 Set in Vercel → Project → Settings → Environment Variables (**Production** + **Preview** as needed).
 
+**CLI (recommended):** copy `.env.vercel.production.example` → `.env.vercel.production`, fill AWS values, then:
+
+```bash
+cd spinesync-asmr-studio
+VERCEL_TOKEN=... npm run vercel:sync-env
+VERCEL_TOKEN=... npm run vercel:deploy   # or redeploy from Vercel dashboard
+VERCEL_TOKEN=... npm run vercel:status   # env keys + deployment errors + live health
+```
+
+Hobby accounts may hit **100 deploys/day**; if deploy fails, wait for quota reset or use **Deployments → Redeploy** once in the dashboard.
+
 ### Core (required on Vercel)
 
 | Variable | Example / notes |
@@ -31,6 +42,8 @@ Set in Vercel → Project → Settings → Environment Variables (**Production**
 | `AWS_S3_BUCKET` | your bucket |
 | `AWS_ACCESS_KEY_ID` | IAM user or role key |
 | `AWS_SECRET_ACCESS_KEY` | IAM secret |
+
+See [S3-PRODUCTION-SETUP.md](./S3-PRODUCTION-SETUP.md) for bucket + IAM policy.
 | `SPINESYNC_SESSION_SECRET` | long random string |
 | `SPINESYNC_MEDIA_TOKEN_SECRET` | long random string |
 | `APP_BASE_URL` | `https://spinesync-asmr-studio.vercel.app` (or custom domain, **HTTPS**) |
