@@ -142,7 +142,15 @@ Explicitly **out of scope** for Phase 2 unless product asks: multi-user review, 
 - [x] CI uses `test:unit` only (integration SIGSEGV on Actions)
 - [x] Job history restores `edit` from GET `/api/jobs/:id`
 
-When merge + smoke are checked, start Phase 2.1 (caption timeline drag).
+### Phase 2.1 — caption timeline (in progress)
+
+- [x] Drag caption blocks to move (source timeline)
+- [x] Resize start/end handles in Caption tool
+- [x] Add caption at playhead
+- [x] Live karaoke preview uses editor caption times (`sourceCaptionsToClipPreview`)
+- [ ] Manual smoke on server export with edited caption timing
+
+When smoke is checked, proceed to Phase 2.2 (edit persistence / asset store).
 
 ---
 

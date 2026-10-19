@@ -42,6 +42,7 @@ import {
 } from "@/components/layout/StudioViewTabs";
 import type { ReelEditState } from "@/lib/contract/reel-edit";
 import { defaultReelEdit } from "@/lib/contract/reel-edit";
+import { sourceCaptionsToClipPreview } from "@/lib/reel-edit/caption-timing";
 import { hasMeaningfulEdit } from "@/lib/reel-edit/edit-diff";
 import { normalizeReelEdit } from "@/lib/reel-edit/normalize";
 
@@ -137,6 +138,20 @@ export function StudioDashboard() {
   }, [jobResult, localVideoUrl]);
 
   const editorEnabled = Boolean(file || previewVideoUrl);
+
+  const previewCaptionSegments = useMemo(() => {
+    if (
+      studioView === "editor" &&
+      reelEdit?.captions?.length &&
+      reelEdit.trimInSec != null
+    ) {
+      return sourceCaptionsToClipPreview(
+        reelEdit.captions,
+        reelEdit.trimInSec,
+      );
+    }
+    return jobResult?.captionSegments ?? null;
+  }, [studioView, reelEdit, jobResult?.captionSegments]);
 
   const handleFileSelect = useCallback(
     async (f: File | null) => {
@@ -484,7 +499,7 @@ export function StudioDashboard() {
               sfxCrack={toggles.sfxCrack}
               videoUrl={previewVideoUrl}
               peakTimeSec={peakTimeSec}
-              captionSegments={jobResult?.captionSegments ?? null}
+              captionSegments={previewCaptionSegments}
               audioEnvelope={
                 sourceAudio.envelope.length ? sourceAudio.envelope : null
               }

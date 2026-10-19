@@ -3,6 +3,7 @@
 import type { CaptionSegment } from "@/lib/contract/job";
 import type { ReelEditState } from "@/lib/contract/reel-edit";
 import type { EditorTool } from "@/hooks/useReelEditor";
+import { CaptionTimelineTrack } from "@/components/editor/CaptionTimelineTrack";
 import { clipDurationSec } from "@/lib/reel-edit/normalize";
 
 function pct(time: number, duration: number) {
@@ -23,6 +24,8 @@ interface TimelineMultiTrackProps {
   onTrimOutChange: (sourceSec: number) => void;
   onPeakChange: (clipSec: number) => void;
   onSelectCaption?: (index: number) => void;
+  selectedCaptionIndex?: number;
+  onCaptionTimingChange?: (index: number, start: number, end: number) => void;
 }
 
 export function TimelineMultiTrack({
@@ -38,6 +41,8 @@ export function TimelineMultiTrack({
   onTrimOutChange,
   onPeakChange,
   onSelectCaption,
+  selectedCaptionIndex = 0,
+  onCaptionTimingChange,
 }: TimelineMultiTrackProps) {
   const sourceDur = Math.max(sourceDurationSec, 0.1);
   const trimOut = edit.trimOutSec ?? sourceDur;
@@ -180,22 +185,15 @@ export function TimelineMultiTrack({
         />
       </div>
 
-      <div className="relative h-8 rounded-lg bg-slate-900/60">
-        {captions?.map((c, i) => (
-          <button
-            key={`${c.start}-${i}`}
-            type="button"
-            className="absolute top-1 bottom-1 rounded bg-purple-500/30 px-1 text-[9px] text-purple-100 truncate border border-purple-400/30 hover:bg-purple-500/45"
-            style={{
-              left: `${pct(c.start, sourceDur)}%`,
-              width: `${Math.max(3, pct(c.end - c.start, sourceDur))}%`,
-            }}
-            onClick={() => onSelectCaption?.(i)}
-            title={c.text}
-          >
-            {c.text.slice(0, 20)}
-          </button>
-        ))}
+      <div data-caption-track>
+        <CaptionTimelineTrack
+          sourceDurationSec={sourceDur}
+          captions={captions ?? []}
+          selectedIndex={selectedCaptionIndex}
+          captionToolActive={tool === "caption" && Boolean(onCaptionTimingChange)}
+          onSelect={(i) => onSelectCaption?.(i)}
+          onTimingChange={(i, start, end) => onCaptionTimingChange?.(i, start, end)}
+        />
       </div>
     </div>
   );
