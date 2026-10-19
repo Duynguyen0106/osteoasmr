@@ -10,6 +10,7 @@ import { PIPELINE_STAGES, createInitialStageStatus } from "@/lib/pipeline";
 import type { PipelineStageId, StageStatus } from "@/lib/types";
 import { assertJobAccess } from "@/lib/server/access";
 import { buildJobPreviewUrls } from "@/lib/server/job-artifacts";
+import { jobEventStreamResponse } from "@/lib/server/job-sse";
 import { appendJobLog, getJobLogs } from "@/lib/server/job-service";
 
 function buildStageMap(
@@ -44,6 +45,10 @@ export async function GET(
   const access = assertJobAccess(request, id);
   if ("error" in access) return access.error;
   const job = access.job;
+
+  if (new URL(request.url).searchParams.get("stream") === "sse") {
+    return jobEventStreamResponse(id, job);
+  }
 
   const logs = getJobLogs(id).map((l) => ({
     id: l.id,

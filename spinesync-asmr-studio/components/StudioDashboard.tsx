@@ -314,7 +314,9 @@ export function StudioDashboard({
           setAssetId(id);
           appendLog(`Server asset registered · ${id.slice(0, 8)}…`);
           try {
-            const analyze = await spinesyncFetch(`/api/assets/${id}/analyze`);
+            const analyze = await spinesyncFetch(
+              `/api/assets?assetId=${encodeURIComponent(id)}&analyze=1`,
+            );
             if (analyze.ok) {
               const data = (await analyze.json()) as { peakTimeSec: number };
               setServerPeakTimeSec(data.peakTimeSec);

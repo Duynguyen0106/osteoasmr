@@ -8,8 +8,10 @@ import {
 import {
   completePresignedAsset,
   createPresignedAsset,
+  materializeAssetLocalPath,
   saveUploadedAsset,
 } from "@/lib/server/assets";
+import { detectPeakTimeSec, probeDurationSec } from "@/lib/server/ffmpeg";
 import { getStorage } from "@/lib/server/storage";
 
 const MAX_BYTES = 500 * 1024 * 1024;
@@ -25,6 +27,40 @@ const completeSchema = z.object({
   action: z.literal("complete"),
   assetId: z.string().min(1),
 });
+
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const assetId = url.searchParams.get("assetId")?.trim();
+  if (url.searchParams.get("analyze") !== "1" || !assetId) {
+    return NextResponse.json(
+      { error: "Use GET ?assetId=…&analyze=1 for ffmpeg peak scan" },
+      { status: 400 },
+    );
+  }
+
+  const access = assertAssetAccess(request, assetId);
+  if ("error" in access) return access.error;
+
+  try {
+    const localPath = await materializeAssetLocalPath({
+      storagePath: access.asset.storagePath,
+      storageKey: access.asset.storageKey,
+      storageDriver: access.asset.storageDriver,
+    });
+    const durationSec = (await probeDurationSec(localPath)) ?? 0;
+    const peakTimeSec = await detectPeakTimeSec(localPath, 4.2);
+
+    return NextResponse.json({
+      assetId,
+      durationSec,
+      peakTimeSec,
+      source: "ffmpeg",
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Analyze failed";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
 
 export async function POST(request: Request) {
   const contentType = request.headers.get("content-type") ?? "";

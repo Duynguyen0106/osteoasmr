@@ -25,12 +25,12 @@ Copy `.env.example` to `.env.local` for server mode. Requires **ffmpeg** on `PAT
 | Page | `/jobs/:id/edit` | Deep link: load job + editor |
 | GET | `/api/health` | ffmpeg + storage status |
 | POST | `/api/assets` | Multipart upload, or JSON `action`: `presign` \| `complete` |
-| GET | `/api/assets/:id/analyze` | ffmpeg peak time + duration (server mode) |
+| GET | `/api/assets?assetId=&analyze=1` | ffmpeg peak time + duration (server mode) |
 | GET | `/api/jobs` | List recent jobs for current project |
 | POST | `/api/preview` | Quick reel or thumb (`kind`: `reel` \| `thumb`) |
 | POST | `/api/jobs` | Create job (JSON body, see `lib/contract/job.ts`) |
 | GET | `/api/jobs/:id` | Status, stages, logs, result |
-| GET | `/api/jobs/:id/stream` | SSE log/stage/complete events |
+| GET | `/api/jobs/:id?stream=sse` | SSE log/stage/complete events |
 | POST | `/api/jobs/:id` | Ayrshare publish (completed jobs; publish body) |
 | GET | `/api/media/*` | Serve job artifacts (reel, thumb, etc.) |
 

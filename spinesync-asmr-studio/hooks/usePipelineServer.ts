@@ -183,7 +183,7 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
         setJobId(id);
 
         await new Promise<void>((resolve, reject) => {
-          const source = new EventSource(`/api/jobs/${id}/stream`, {
+          const source = new EventSource(`/api/jobs/${id}?stream=sse`, {
             withCredentials: true,
           });
 
