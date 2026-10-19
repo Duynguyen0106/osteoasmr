@@ -168,6 +168,14 @@ When smoke is checked, proceed to Phase 2.2 (edit persistence / asset store).
 - [x] Editor copy clarifies preview-only vs server export
 - [ ] Manual smoke: long file where audio decode ≠ video duration — warning visible, trim sane
 
+### Phase 2.5 — routing
+
+- [x] `/editor` opens Reel Pro Editor tab (URL sync when `syncRoutes`)
+- [x] `/jobs/[id]/edit` deep link loads job + edit (server mode)
+- [x] Tab switches update URL (`/` ↔ `/editor` ↔ job edit when a job is active)
+- [x] Job history row includes editor deep link
+- [ ] Manual smoke: share `/jobs/{id}/edit` → recipient sees job media + edit restored
+
 ---
 
 ## 9. Related docs
