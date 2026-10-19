@@ -3,7 +3,9 @@
 import type { CaptionSegment } from "@/lib/contract/job";
 import type { ReelEditState } from "@/lib/contract/reel-edit";
 import type { EditorTool } from "@/hooks/useReelEditor";
+import { BrollTimelineTrack } from "@/components/editor/BrollTimelineTrack";
 import { CaptionTimelineTrack } from "@/components/editor/CaptionTimelineTrack";
+import type { BrollOverlay } from "@/lib/contract/reel-edit";
 import { clipDurationSec } from "@/lib/reel-edit/normalize";
 
 function pct(time: number, duration: number) {
@@ -30,6 +32,11 @@ interface TimelineMultiTrackProps {
   onSelectCaption?: (index: number) => void;
   selectedCaptionIndex?: number;
   onCaptionTimingChange?: (index: number, start: number, end: number) => void;
+  brollOverlays?: BrollOverlay[];
+  selectedBrollIndex?: number;
+  onSelectBroll?: (index: number) => void;
+  onBrollTimingChange?: (index: number, startSec: number, endSec: number) => void;
+  onRemoveBroll?: (index: number) => void;
 }
 
 export function TimelineMultiTrack({
@@ -50,6 +57,11 @@ export function TimelineMultiTrack({
   onSelectCaption,
   selectedCaptionIndex = 0,
   onCaptionTimingChange,
+  brollOverlays = [],
+  selectedBrollIndex = 0,
+  onSelectBroll,
+  onBrollTimingChange,
+  onRemoveBroll,
 }: TimelineMultiTrackProps) {
   const sourceDur = Math.max(sourceDurationSec, 0.1);
   const trimOut = edit.trimOutSec ?? sourceDur;
@@ -219,6 +231,21 @@ export function TimelineMultiTrack({
           onTimingChange={(i, start, end) => onCaptionTimingChange?.(i, start, end)}
         />
       </div>
+
+      <div className="text-[10px] uppercase tracking-wider text-slate-500">
+        B-roll lane
+      </div>
+      <BrollTimelineTrack
+        sourceDurationSec={sourceDur}
+        overlays={brollOverlays}
+        selectedIndex={selectedBrollIndex}
+        brollToolActive={tool === "broll" && Boolean(onBrollTimingChange)}
+        onSelect={(i) => onSelectBroll?.(i)}
+        onTimingChange={(i, startSec, endSec) =>
+          onBrollTimingChange?.(i, startSec, endSec)
+        }
+        onRemove={onRemoveBroll}
+      />
     </div>
   );
 }

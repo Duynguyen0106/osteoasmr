@@ -4,16 +4,18 @@ import { useCallback, useRef, useState } from "react";
 import type { CaptionSegment } from "@/lib/contract/job";
 import {
   defaultReelEdit,
+  type BrollOverlay,
   type ReelEditState,
   type ReelMarker,
 } from "@/lib/contract/reel-edit";
+import { clampBrollRange } from "@/lib/reel-edit/broll";
 import { importCaptionsForEditor } from "@/lib/reel-edit/captions";
 import { clampCaptionRange } from "@/lib/reel-edit/caption-timing";
 import { clipDurationSec, normalizeReelEdit } from "@/lib/reel-edit/normalize";
 
 const MAX_UNDO = 24;
 
-export type EditorTool = "select" | "trim" | "peak" | "caption";
+export type EditorTool = "select" | "trim" | "peak" | "caption" | "broll";
 
 export function useReelEditor(options: {
   sourceDurationSec: number;
@@ -187,6 +189,52 @@ export function useReelEditor(options: {
     [commit, edit, dur, playheadSec],
   );
 
+  const addBrollOverlay = useCallback(
+    (assetId: string, label?: string) => {
+      const sourceStart = edit.trimInSec + playheadSec;
+      const { startSec, endSec } = clampBrollRange(
+        sourceStart,
+        sourceStart + 2.5,
+        dur,
+      );
+      const overlay: BrollOverlay = {
+        id: `broll-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        assetId,
+        label,
+        startSec,
+        endSec,
+        brollInSec: 0,
+      };
+      const brollOverlays = [...edit.brollOverlays, overlay].sort(
+        (a, b) => a.startSec - b.startSec,
+      );
+      commit({ ...edit, brollOverlays });
+    },
+    [commit, edit, dur, playheadSec],
+  );
+
+  const updateBrollTiming = useCallback(
+    (index: number, startSec: number, endSec: number) => {
+      const next = edit.brollOverlays.map((b, i) => {
+        if (i !== index) return b;
+        const clamped = clampBrollRange(startSec, endSec, dur);
+        return { ...b, ...clamped };
+      });
+      commit({ ...edit, brollOverlays: next.sort((a, b) => a.startSec - b.startSec) });
+    },
+    [commit, edit, dur],
+  );
+
+  const removeBrollOverlay = useCallback(
+    (index: number) => {
+      commit({
+        ...edit,
+        brollOverlays: edit.brollOverlays.filter((_, i) => i !== index),
+      });
+    },
+    [commit, edit],
+  );
+
   const clipDuration = clipDurationSec(edit);
   const peakDisplay = edit.peakTimeSec ?? initialPeakSec;
 
@@ -207,6 +255,9 @@ export function useReelEditor(options: {
     updateCaptionText,
     updateCaptionTiming,
     addCaptionAtPlayhead,
+    addBrollOverlay,
+    updateBrollTiming,
+    removeBrollOverlay,
     setZoomIntensity: (zoomIntensity: number) =>
       commit({ ...edit, zoomIntensity }),
     undo,

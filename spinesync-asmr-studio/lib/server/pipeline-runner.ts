@@ -42,6 +42,8 @@ import {
   materializeTrimmedSource,
   trimmedSourcePath,
 } from "./source-trim";
+import { brollForTrimmedExport } from "@/lib/reel-edit/broll";
+import { applyBrollOverlays } from "./broll-composite";
 import { segmentsToVtt } from "./captions";
 
 function delay(ms: number) {
@@ -125,6 +127,55 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
         jobId,
         `Reel edit · ${edit.markers.length} timeline marker(s) (reference only)`,
       );
+    }
+    const brollLayers = brollForTrimmedExport(edit.brollOverlays, edit);
+    if (brollLayers.length > 0) {
+      appendJobLog(
+        jobId,
+        `Reel edit · ${brollLayers.length} B-roll overlay(s) on clip timeline`,
+      );
+      const resolved: {
+        brollPath: string;
+        clipStartSec: number;
+        clipEndSec: number;
+        brollInSec: number;
+      }[] = [];
+      for (const layer of brollLayers) {
+        const brollAsset = getAssetById(layer.assetId);
+        if (!brollAsset) {
+          appendJobLog(
+            jobId,
+            `B-roll skipped · asset ${layer.assetId.slice(0, 8)}… not found`,
+          );
+          continue;
+        }
+        const brollPath = await materializeAssetLocalPath({
+          storagePath: brollAsset.storagePath,
+          storageKey: brollAsset.storageKey,
+          storageDriver: brollAsset.storageDriver,
+        });
+        if (brollPath && (await fileExists(brollPath))) {
+          resolved.push({
+            brollPath,
+            clipStartSec: layer.clipStartSec,
+            clipEndSec: layer.clipEndSec,
+            brollInSec: layer.brollInSec,
+          });
+        }
+      }
+      if (resolved.length > 0) {
+        const compositePath = path.join(dir, "source-broll-composite.mp4");
+        const composite = await applyBrollOverlays({
+          mainPath: sourcePath,
+          outputPath: compositePath,
+          workDir: dir,
+          layers: resolved,
+        });
+        if (composite.composited) {
+          sourcePath = composite.path;
+          appendJobLog(jobId, "B-roll compositor · overlays baked into source");
+        }
+      }
     }
   }
   const defaults = presetPeakDefaults(config.presetId, config.focus);

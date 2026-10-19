@@ -249,6 +249,15 @@ export function StudioDashboard() {
     [appendLog],
   );
 
+  const handleBrollUpload = useCallback(
+    async (f: File) => {
+      if (!isServerPipeline) return null;
+      const id = await uploadAssetSmart(f);
+      return { assetId: id, label: f.name };
+    },
+    [],
+  );
+
   const handlePresetSelect = useCallback(
     (id: string) => {
       const p = getPresetById(id);
@@ -452,6 +461,8 @@ export function StudioDashboard() {
             durationMismatch={resolvedSourceDuration.mismatch}
             durationMismatchDetail={durationMismatchDetail}
             exportsEditsToPipeline={isServerPipeline}
+            onBrollUpload={isServerPipeline ? handleBrollUpload : undefined}
+            onBrollLog={appendLog}
             onEditChange={setReelEdit}
             onSeekPreview={(t) => setEditorSeekClipSec(t)}
           />
