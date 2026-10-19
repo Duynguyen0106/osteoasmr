@@ -24,6 +24,7 @@ import {
 import { generateGptCopy, headlineForConfig, prepareWhisperAudio, transcribeWhisper } from "./openai";
 import { hasOpenAI, remotionRenderMode } from "./config";
 import { jobDir } from "./paths";
+import { buildJobPreviewUrls, publishJobArtifactsToStorage } from "./job-artifacts";
 import { renderReel916 } from "./render";
 import { renderRemotionLocal } from "./remotion-render";
 
@@ -163,7 +164,7 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
             });
             appendJobLog(
               jobId,
-              `Remotion Lambda (ffmpeg) · 1080×1920 · ${config.toggles.tiktokSubs ? "burned captions · " : ""}${config.toggles.autoPeakZoom ? "micro-zoom @ peak" : "standard crop"}`,
+              `9:16 video render (ffmpeg) · 1080×1920 · ${config.toggles.tiktokSubs ? "burned captions · " : ""}${config.toggles.autoPeakZoom ? "micro-zoom @ peak" : "standard crop"}`,
             );
           } catch {
             await renderReel916({
@@ -175,7 +176,7 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
               peakTimeSec: peak.timeSec,
               autoPeakZoom: false,
             });
-            appendJobLog(jobId, "Remotion · fallback render (simplified ffmpeg chain)");
+            appendJobLog(jobId, "9:16 video render · fallback (simplified ffmpeg chain)");
           }
         }
       } else if (stageId === "thumbnail") {
@@ -239,6 +240,8 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
       await fs.promises.writeFile(copyPath, JSON.stringify(copy, null, 2));
     }
 
+    await publishJobArtifactsToStorage(jobId, dir);
+
     const result: JobResult = {
       peak,
       copy: jobCopy,
@@ -249,12 +252,7 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
         captions: vttPath,
         copy: copyPath,
       },
-      previewUrls: {
-        reel: `/api/media/jobs/${jobId}/reel.mp4`,
-        thumb: `/api/media/jobs/${jobId}/thumb.jpg`,
-        captions: `/api/media/jobs/${jobId}/captions.vtt`,
-        karaoke: `/api/media/jobs/${jobId}/segments.json`,
-      },
+      previewUrls: await buildJobPreviewUrls(jobId),
     };
 
     completeJob(jobId, result, copyRevision);

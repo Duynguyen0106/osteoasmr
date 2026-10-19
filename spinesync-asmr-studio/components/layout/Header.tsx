@@ -2,14 +2,75 @@
 
 import { motion } from "framer-motion";
 import { Bone, Cloud } from "lucide-react";
+import { useEffect, useState } from "react";
 
-const SERVICES = [
-  { name: "AWS Lambda", status: "Ready", color: "bg-emerald-400" },
-  { name: "Whisper AI", status: "Active", color: "bg-cyan-400" },
-  { name: "Ayrshare API", status: "Connected", color: "bg-emerald-400" },
-] as const;
+type HealthPayload = {
+  queue?: { executor?: string; backend?: string };
+  integrations?: {
+    openai?: boolean;
+    ayrshare?: boolean;
+    canPublishAyrshare?: boolean;
+  };
+  remotion?: { mode?: string };
+  auth?: { requireApiKey?: boolean };
+};
+
+type ServiceRow = {
+  name: string;
+  status: string;
+  color: string;
+};
+
+function executorLabel(health: HealthPayload | null): ServiceRow {
+  const exec = health?.queue?.executor ?? "inline";
+  const backend = health?.queue?.backend ?? "sqlite";
+  return {
+    name: "Job executor",
+    status: backend === "redis" ? `worker · ${backend}` : exec,
+    color: "bg-emerald-400",
+  };
+}
+
+function openAiLabel(health: HealthPayload | null): ServiceRow {
+  const on = health?.integrations?.openai;
+  return {
+    name: "Whisper / GPT",
+    status: on ? "Configured" : "Fallback templates",
+    color: on ? "bg-cyan-400" : "bg-amber-400",
+  };
+}
+
+function ayrshareLabel(health: HealthPayload | null): ServiceRow {
+  const key = health?.integrations?.ayrshare;
+  const can = health?.integrations?.canPublishAyrshare;
+  let status = "Stub (no key)";
+  let color = "bg-slate-500";
+  if (key && can) {
+    status = "Live (HTTPS)";
+    color = "bg-emerald-400";
+  } else if (key) {
+    status = "Key set · need HTTPS base URL";
+    color = "bg-amber-400";
+  }
+  return { name: "Ayrshare", status, color };
+}
 
 export function Header() {
+  const [health, setHealth] = useState<HealthPayload | null>(null);
+
+  useEffect(() => {
+    fetch("/api/health")
+      .then((r) => r.json())
+      .then((data) => setHealth(data as HealthPayload))
+      .catch(() => setHealth(null));
+  }, []);
+
+  const services = [
+    executorLabel(health),
+    openAiLabel(health),
+    ayrshareLabel(health),
+  ];
+
   return (
     <header className="sticky top-0 z-50 border-b border-cyan-500/10 bg-[#090d16]/85 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6">
@@ -31,7 +92,7 @@ export function Header() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {SERVICES.map((svc) => (
+          {services.map((svc) => (
             <div
               key={svc.name}
               className="status-pill flex items-center gap-2 rounded-full px-3 py-1.5 text-xs"

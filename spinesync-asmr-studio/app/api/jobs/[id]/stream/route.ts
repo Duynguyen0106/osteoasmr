@@ -1,5 +1,8 @@
 import type { JobStreamEvent } from "@/lib/contract/job";
-import { getJobById, getJobLogs } from "@/lib/server/job-service";
+import { assertJobAccess } from "@/lib/server/access";
+import { buildJobPreviewUrls } from "@/lib/server/job-artifacts";
+import { getJobLogs } from "@/lib/server/job-service";
+import type { JobResult } from "@/lib/contract/job";
 import { subscribeJob } from "@/lib/server/events";
 
 function encodeSse(event: JobStreamEvent) {
@@ -7,17 +10,24 @@ function encodeSse(event: JobStreamEvent) {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  const job = getJobById(id);
-  if (!job) {
-    return new Response("Job not found", { status: 404 });
+  const access = assertJobAccess(request, id);
+  if ("error" in access && access.error) {
+    const status = access.error.status;
+    return new Response(status === 401 ? "Unauthorized" : "Forbidden", {
+      status,
+    });
   }
+  if (!("job" in access)) {
+    return new Response("Forbidden", { status: 403 });
+  }
+  const job = access.job;
 
   const stream = new ReadableStream({
-    start(controller) {
+    async start(controller) {
       const encoder = new TextEncoder();
 
       for (const log of getJobLogs(id)) {
@@ -43,7 +53,11 @@ export async function GET(
 
       if (job.status === "completed" && job.resultJson) {
         try {
-          const result = JSON.parse(job.resultJson);
+          const parsed = JSON.parse(job.resultJson) as JobResult;
+          const result: JobResult = {
+            ...parsed,
+            previewUrls: await buildJobPreviewUrls(id),
+          };
           controller.enqueue(
             encoder.encode(
               encodeSse({

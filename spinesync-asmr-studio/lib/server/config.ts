@@ -45,3 +45,29 @@ export function remotionRenderMode(): "off" | "local" | "lambda" {
   if (v === "local" || v === "lambda") return v;
   return "off";
 }
+
+/** When true, API routes require x-spinesync-api-key or session cookie (default: production). */
+export function requireApiKey(): boolean {
+  const v = process.env.SPINESYNC_REQUIRE_API_KEY?.trim().toLowerCase();
+  if (v === "true" || v === "1") return true;
+  if (v === "false" || v === "0") return false;
+  return process.env.NODE_ENV === "production";
+}
+
+export function isHttpsAppBaseUrl(base = appBaseUrl()): boolean {
+  try {
+    const url = new URL(base);
+    return url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/** Ayrshare live posts require a public HTTPS origin for media URLs. */
+export function canPublishToAyrshare(): boolean {
+  return hasAyrshare() && isHttpsAppBaseUrl();
+}
+
+export function jobQueueBackend(): "sqlite" | "redis" {
+  return process.env.JOB_QUEUE_BACKEND === "redis" ? "redis" : "sqlite";
+}

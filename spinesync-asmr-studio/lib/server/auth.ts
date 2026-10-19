@@ -29,6 +29,11 @@ export function ensureDefaultProject() {
 }
 
 export function resolveProjectId(request: Request): string {
+  const resolved = resolveProjectIdOrNull(request);
+  return resolved ?? getDefaultProjectId();
+}
+
+export function resolveProjectIdOrNull(request: Request): string | null {
   ensureDefaultProject();
   const headerKey = request.headers.get("x-spinesync-api-key");
   if (headerKey) {
@@ -39,6 +44,7 @@ export function resolveProjectId(request: Request): string {
       .where(eq(schema.projects.apiKey, headerKey))
       .get();
     if (project) return project.id;
+    return null;
   }
   return getDefaultProjectId();
 }

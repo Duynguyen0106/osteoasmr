@@ -13,8 +13,8 @@ export const PIPELINE_STAGES: PipelineStage[] = [
   },
   {
     id: "remotion",
-    label: "Remotion 9:16 Video Render",
-    logMessage: "Remotion Lambda · 1080×1920 H.264 · micro-zoom @ peak",
+    label: "9:16 Video Render (ffmpeg / Remotion)",
+    logMessage: "9:16 render · 1080×1920 H.264 · micro-zoom @ peak",
   },
   {
     id: "thumbnail",

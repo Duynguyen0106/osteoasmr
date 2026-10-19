@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import type { JobResult } from "@/lib/contract/job";
 import { PIPELINE_STAGES, createInitialStageStatus } from "@/lib/pipeline";
 import type { PipelineStageId, StageStatus } from "@/lib/types";
-import { getJobById, getJobLogs } from "@/lib/server/job-service";
+import { assertJobAccess } from "@/lib/server/access";
+import { buildJobPreviewUrls } from "@/lib/server/job-artifacts";
+import { getJobLogs } from "@/lib/server/job-service";
 
 function buildStageMap(
   status: string,
@@ -29,14 +31,13 @@ function buildStageMap(
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  const job = getJobById(id);
-  if (!job) {
-    return NextResponse.json({ error: "Job not found" }, { status: 404 });
-  }
+  const access = assertJobAccess(request, id);
+  if ("error" in access) return access.error;
+  const job = access.job;
 
   const logs = getJobLogs(id).map((l) => ({
     id: l.id,
@@ -48,6 +49,12 @@ export async function GET(
   if (job.resultJson) {
     try {
       result = JSON.parse(job.resultJson) as JobResult;
+      if (result) {
+        result = {
+          ...result,
+          previewUrls: await buildJobPreviewUrls(id),
+        };
+      }
     } catch {
       result = null;
     }

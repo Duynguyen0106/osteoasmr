@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { NextResponse } from "next/server";
+import { assertMediaAccess } from "@/lib/server/access";
 import { UPLOAD_ROOT } from "@/lib/server/paths";
 
 const MIME: Record<string, string> = {
@@ -13,7 +14,7 @@ const MIME: Record<string, string> = {
 };
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ path: string[] }> },
 ) {
   const { path: segments } = await context.params;
@@ -21,6 +22,9 @@ export async function GET(
   if (relative.includes("..")) {
     return NextResponse.json({ error: "Invalid path" }, { status: 400 });
   }
+
+  const accessError = assertMediaAccess(request, relative);
+  if (accessError) return accessError;
 
   const filePath = path.join(UPLOAD_ROOT, relative);
   const resolved = path.resolve(filePath);

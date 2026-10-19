@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolveProjectId } from "@/lib/server/auth";
+import { resolveProjectFromRequest, unauthorized } from "@/lib/server/access";
 import { saveUploadedAsset } from "@/lib/server/assets";
 
 const MAX_BYTES = 500 * 1024 * 1024;
@@ -24,7 +24,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Only MP4/MOV allowed" }, { status: 415 });
     }
 
-    const projectId = resolveProjectId(request);
+    const projectId = resolveProjectFromRequest(request);
+    if (!projectId) return unauthorized();
     const asset = await saveUploadedAsset(file, projectId);
     return NextResponse.json(asset);
   } catch (err) {

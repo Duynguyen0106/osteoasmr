@@ -78,3 +78,29 @@ Open [http://localhost:3000](http://localhost:3000).
 | `APP_BASE_URL` | Public URL for `mediaUrls` (required for Ayrshare to fetch reel) |
 
 UI karaoke subtitles use `captionSegments` from completed jobs when available.
+
+## Phase C — storage, queue, Remotion, auth
+
+| Feature | Env / usage |
+|---------|-------------|
+| **S3 presigned upload** | `STORAGE_DRIVER=s3`, `AWS_S3_BUCKET`, `AWS_REGION` → `POST /api/assets/presign` + `complete` |
+| **Direct upload** | Default local multipart `POST /api/assets/upload` |
+| **CloudFront URLs** | `AWS_CLOUDFRONT_DOMAIN` for readable media links (Ayrshare / CDN) |
+| **Worker queue** | `JOB_EXECUTOR=worker` + `npm run worker:pipeline` (API enqueues only) |
+| **Remotion local render** | `REMOTION_RENDER=local` uses `remotion/SpineSyncReel916` before ffmpeg fallback |
+| **Multi-tenant** | SQLite `projects` table · `x-spinesync-api-key` header (default project auto-seeded) |
+
+Check `/api/health` for `storage`, `queue`, `remotion`, and `auth` blocks.
+
+## Security & production hardening
+
+| Control | Behavior |
+|---------|----------|
+| **Project scoping** | Jobs/assets/media are tied to a project; cross-tenant IDs return `403`. |
+| **Session bootstrap** | `POST /api/auth/bootstrap` sets an HttpOnly cookie; the UI calls this on load in server mode. |
+| **API key** | `x-spinesync-api-key` header (or bootstrap body) · `SPINESYNC_REQUIRE_API_KEY=true` in production. |
+| **Media access** | Signed `exp`/`sig` query tokens, session cookie, or API key; job paths validated against project. |
+| **Ayrshare live posts** | Requires `APP_BASE_URL` with **HTTPS** and a public reel URL (S3/CloudFront or signed media). |
+| **Redis queue (optional)** | `JOB_QUEUE_BACKEND=redis` + `REDIS_URL` with `JOB_EXECUTOR=worker`. |
+
+Run `npm run test` for token/config unit checks.

@@ -2,17 +2,17 @@ import { NextResponse } from "next/server";
 import type { JobCopyResult, JobResult } from "@/lib/contract/job";
 import { publishBodySchema } from "@/lib/contract/job";
 import { publishViaAyrshare } from "@/lib/server/ayrshare";
-import { appendJobLog, getJobById } from "@/lib/server/job-service";
+import { assertJobAccess } from "@/lib/server/access";
+import { appendJobLog } from "@/lib/server/job-service";
 
 export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  const job = getJobById(id);
-  if (!job) {
-    return NextResponse.json({ error: "Job not found" }, { status: 404 });
-  }
+  const access = assertJobAccess(request, id);
+  if ("error" in access) return access.error;
+  const job = access.job;
 
   if (job.status !== "completed") {
     return NextResponse.json(

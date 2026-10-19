@@ -1,5 +1,6 @@
 import type { PublishBody } from "@/lib/contract/job";
-import { appBaseUrl, hasAyrshare } from "./config";
+import { appBaseUrl, canPublishToAyrshare, hasAyrshare } from "./config";
+import { publishReelUrlForJob } from "./job-artifacts";
 
 const PLATFORM_MAP: Record<string, string> = {
   "Instagram Reels": "instagram",
@@ -25,11 +26,26 @@ export async function publishViaAyrshare(
     };
   }
 
+  if (!canPublishToAyrshare()) {
+    return {
+      ok: false,
+      provider: "ayrshare",
+      detail: `APP_BASE_URL must be HTTPS (current: ${appBaseUrl()}) for live Ayrshare posts`,
+    };
+  }
+
   const platforms = input.publish.platforms
     .map((p) => PLATFORM_MAP[p] ?? p.toLowerCase())
     .filter(Boolean);
 
-  const mediaUrl = `${appBaseUrl()}/api/media/jobs/${input.jobId}/reel.mp4`;
+  const mediaUrl = (await publishReelUrlForJob(input.jobId)) ?? "";
+  if (!mediaUrl.startsWith("http")) {
+    return {
+      ok: false,
+      provider: "ayrshare",
+      detail: "Could not resolve public reel URL for publish",
+    };
+  }
 
   const body: Record<string, unknown> = {
     post: input.caption,

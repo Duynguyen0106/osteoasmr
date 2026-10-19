@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { AuthBootstrap } from "@/components/layout/AuthBootstrap";
 import { Header } from "@/components/layout/Header";
 import { PipelineBanner } from "@/components/layout/PipelineBanner";
 import { IngestionPanel } from "@/components/ingestion/IngestionPanel";
@@ -189,6 +190,7 @@ export function StudioDashboard() {
 
   return (
     <div className="relative min-h-screen pb-12">
+      {isServerPipeline && <AuthBootstrap />}
       <div
         className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.08),transparent_50%),radial-gradient(ellipse_at_bottom_right,rgba(6,182,212,0.06),transparent_45%)]"
         aria-hidden

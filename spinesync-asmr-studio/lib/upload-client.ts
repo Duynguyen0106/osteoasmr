@@ -1,11 +1,15 @@
+import { ensureStudioSession, spinesyncFetch } from "@/lib/api-client";
+
 export async function uploadAssetSmart(file: File): Promise<string> {
-  const health = await fetch("/api/health");
+  await ensureStudioSession();
+
+  const health = await spinesyncFetch("/api/health");
   const info = (await health.json()) as {
     storage?: { driver?: string; presign?: boolean };
   };
 
   if (info.storage?.driver === "s3" && info.storage?.presign) {
-    const presignRes = await fetch("/api/assets/presign", {
+    const presignRes = await spinesyncFetch("/api/assets/presign", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -30,7 +34,7 @@ export async function uploadAssetSmart(file: File): Promise<string> {
     });
     if (!put.ok) throw new Error("S3 upload failed");
 
-    const complete = await fetch("/api/assets/complete", {
+    const complete = await spinesyncFetch("/api/assets/complete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ assetId: presign.assetId }),
@@ -41,7 +45,7 @@ export async function uploadAssetSmart(file: File): Promise<string> {
 
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch("/api/assets/upload", { method: "POST", body: form });
+  const res = await spinesyncFetch("/api/assets/upload", { method: "POST", body: form });
   if (!res.ok) {
     const err = (await res.json()) as { error?: string };
     throw new Error(err.error ?? "Upload failed");

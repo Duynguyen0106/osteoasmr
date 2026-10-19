@@ -5,6 +5,14 @@ import confetti from "canvas-confetti";
 import type { JobCopyResult, JobResult } from "@/lib/contract/job";
 import { PIPELINE_STAGES, createInitialStageStatus } from "@/lib/pipeline";
 import type { LogEntry, PipelineRunContext, PipelineStageId } from "@/lib/types";
+import { spinesyncFetch } from "@/lib/api-client";
+
+const MAX_LOG_ENTRIES = 200;
+
+function trimLogs(entries: LogEntry[]): LogEntry[] {
+  if (entries.length <= MAX_LOG_ENTRIES) return entries;
+  return entries.slice(entries.length - MAX_LOG_ENTRIES);
+}
 
 interface UsePipelineServerOptions {
   assetId: string | null;
@@ -34,14 +42,16 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
   const runningRef = useRef(false);
 
   const appendLog = useCallback((message: string) => {
-    setLogs((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        ts: new Date().toLocaleTimeString("en-US", { hour12: false }),
-        message,
-      },
-    ]);
+    setLogs((prev) =>
+      trimLogs([
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          ts: new Date().toLocaleTimeString("en-US", { hour12: false }),
+          message,
+        },
+      ]),
+    );
   }, []);
 
   const applyStageEvent = useCallback(
@@ -58,6 +68,80 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
       }));
     },
     [],
+  );
+
+  const applyJobSnapshot = useCallback(
+    (data: {
+      status: string;
+      progress: number;
+      currentStageId: string | null;
+      stages: Record<PipelineStageId, "idle" | "running" | "done">;
+      logs: LogEntry[];
+      copyRevision: number;
+      result: JobResult | null;
+      error?: string | null;
+    }) => {
+      setLogs(trimLogs(data.logs));
+      setCopyRevision(data.copyRevision);
+      setPipeline((prev) => ({
+        ...prev,
+        progress: data.progress,
+        currentStageId: data.currentStageId as PipelineStageId | null,
+        stages: data.stages,
+        running: data.status === "running" || data.status === "queued",
+      }));
+
+      if (data.status === "completed" && data.result) {
+        setJobResult(data.result);
+        setServerCopy(data.result.copy ?? null);
+        setPipelineComplete(true);
+        setPipeline((prev) => ({
+          ...prev,
+          running: false,
+          progress: 100,
+          currentStageId: null,
+          stages: PIPELINE_STAGES.reduce(
+            (acc, s) => {
+              acc[s.id as PipelineStageId] = "done";
+              return acc;
+            },
+            { ...createInitialStageStatus() },
+          ),
+        }));
+        return true;
+      }
+
+      if (data.status === "failed") {
+        throw new Error(data.error ?? "Job failed");
+      }
+
+      return false;
+    },
+    [],
+  );
+
+  const pollJobUntilDone = useCallback(
+    async (id: string) => {
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        const res = await spinesyncFetch(`/api/jobs/${id}`);
+        if (!res.ok) throw new Error("Failed to poll job status");
+        const data = (await res.json()) as {
+          status: string;
+          progress: number;
+          currentStageId: string | null;
+          stages: Record<PipelineStageId, "idle" | "running" | "done">;
+          logs: LogEntry[];
+          copyRevision: number;
+          result: JobResult | null;
+          error?: string | null;
+        };
+        const done = applyJobSnapshot(data);
+        if (done) return;
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+      throw new Error("Job polling timed out");
+    },
+    [applyJobSnapshot],
   );
 
   const runFullPipeline = useCallback(
@@ -79,7 +163,7 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
       }
 
       try {
-        const res = await fetch("/api/jobs", {
+        const res = await spinesyncFetch("/api/jobs", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -96,7 +180,43 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
         setJobId(id);
 
         await new Promise<void>((resolve, reject) => {
-          const source = new EventSource(`/api/jobs/${id}/stream`);
+          const source = new EventSource(`/api/jobs/${id}/stream`, {
+            withCredentials: true,
+          });
+
+          const finishComplete = (result: JobResult, revision: number) => {
+            setJobResult(result);
+            setServerCopy(result.copy ?? null);
+            setCopyRevision(revision);
+            setPipelineComplete(true);
+            setPipeline((prev) => ({
+              ...prev,
+              running: false,
+              progress: 100,
+              currentStageId: null,
+              stages: PIPELINE_STAGES.reduce(
+                (acc, s) => {
+                  acc[s.id as PipelineStageId] = "done";
+                  return acc;
+                },
+                { ...createInitialStageStatus() },
+              ),
+            }));
+            const reduceMotion = window.matchMedia(
+              "(prefers-reduced-motion: reduce)",
+            ).matches;
+            if (!reduceMotion) {
+              confetti({
+                particleCount: 80,
+                spread: 60,
+                origin: { y: 0.7 },
+                colors: ["#06b6d4", "#22d3ee", "#a855f7"],
+              });
+            }
+            source.close();
+            resolve();
+          };
+
           source.onmessage = (event) => {
             const data = JSON.parse(event.data as string) as
               | { type: "log"; id: string; ts: string; message: string }
@@ -110,48 +230,23 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
               | { type: "error"; message: string };
 
             if (data.type === "log") {
-              setLogs((prev) => [...prev, data]);
+              setLogs((prev) => trimLogs([...prev, data]));
             } else if (data.type === "stage") {
               applyStageEvent(data.stageId, data.status, data.progress);
             } else if (data.type === "complete") {
-              setJobResult(data.result);
-              setServerCopy(data.result.copy ?? null);
-              setCopyRevision(data.copyRevision);
-              setPipelineComplete(true);
-              setPipeline((prev) => ({
-                ...prev,
-                running: false,
-                progress: 100,
-                currentStageId: null,
-                stages: PIPELINE_STAGES.reduce(
-                  (acc, s) => {
-                    acc[s.id as PipelineStageId] = "done";
-                    return acc;
-                  },
-                  { ...createInitialStageStatus() },
-                ),
-              }));
-              const reduceMotion = window.matchMedia(
-                "(prefers-reduced-motion: reduce)",
-              ).matches;
-              if (!reduceMotion) {
-                confetti({
-                  particleCount: 80,
-                  spread: 60,
-                  origin: { y: 0.7 },
-                  colors: ["#06b6d4", "#22d3ee", "#a855f7"],
-                });
-              }
-              source.close();
-              resolve();
+              finishComplete(data.result, data.copyRevision);
             } else if (data.type === "error") {
               source.close();
               reject(new Error(data.message));
             }
           };
+
           source.onerror = () => {
             source.close();
-            reject(new Error("SSE connection lost"));
+            appendLog("SSE reconnect · polling job status…");
+            void pollJobUntilDone(id)
+              .then(() => resolve())
+              .catch(reject);
           };
         });
       } catch (err) {
@@ -162,7 +257,7 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
         runningRef.current = false;
       }
     },
-    [assetId, onNeedAsset, applyStageEvent, appendLog],
+    [assetId, onNeedAsset, applyStageEvent, appendLog, pollJobUntilDone],
   );
 
   const publish = useCallback(
@@ -171,19 +266,20 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
         appendLog("Ayrshare · No completed server job — run pipeline first");
         return;
       }
-      const res = await fetch(`/api/jobs/${jobId}/publish`, {
+      const res = await spinesyncFetch(`/api/jobs/${jobId}/publish`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode }),
+        body: JSON.stringify({ mode, platforms: ["Instagram Reels", "TikTok", "YouTube Shorts", "Facebook Reels"] }),
       });
       if (!res.ok) {
-        appendLog("Ayrshare · Publish request failed");
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        appendLog(`Ayrshare · ${err.error ?? "Publish request failed"}`);
         return;
       }
-      const snapshot = await fetch(`/api/jobs/${jobId}`);
+      const snapshot = await spinesyncFetch(`/api/jobs/${jobId}`);
       if (snapshot.ok) {
         const data = (await snapshot.json()) as { logs: LogEntry[] };
-        setLogs(data.logs);
+        setLogs(trimLogs(data.logs));
       }
     },
     [jobId, appendLog],

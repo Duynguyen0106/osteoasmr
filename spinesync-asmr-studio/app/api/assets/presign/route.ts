@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { resolveProjectId } from "@/lib/server/auth";
+import { resolveProjectFromRequest, unauthorized } from "@/lib/server/access";
 import { createPresignedAsset } from "@/lib/server/assets";
 import { getStorage } from "@/lib/server/storage";
 
@@ -28,7 +28,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid presign payload" }, { status: 400 });
   }
 
-  const projectId = resolveProjectId(request);
+  const projectId = resolveProjectFromRequest(request);
+  if (!projectId) return unauthorized();
   const presign = await createPresignedAsset({
     projectId,
     ...parsed.data,

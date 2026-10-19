@@ -3,14 +3,29 @@
  *
  * Usage: npm run worker:pipeline
  */
-import { jobExecutor } from "../lib/server/config";
+import { jobExecutor, jobQueueBackend } from "../lib/server/config";
 import { ensureDefaultProject } from "../lib/server/auth";
 import { getDb } from "../lib/server/db";
 import type { CreateJobBody } from "../lib/contract/job";
-import { claimNextQueuedJob } from "../lib/server/job-service";
+import { claimNextQueuedJob, tryClaimJobById } from "../lib/server/job-service";
 import { runJobPipeline } from "../lib/server/pipeline-runner";
+import { claimRedisJobId, redisQueueEnabled } from "../lib/server/redis-queue";
 
 async function tick() {
+  if (redisQueueEnabled()) {
+    const jobId = await claimRedisJobId(2);
+    if (!jobId) return false;
+    const job = tryClaimJobById(jobId);
+    if (!job) return false;
+    const config = JSON.parse(job.configJson) as CreateJobBody;
+    await runJobPipeline(job.id, config);
+    return true;
+  }
+
+  if (jobQueueBackend() === "redis") {
+    console.warn("JOB_QUEUE_BACKEND=redis but REDIS_URL missing — using SQLite poll");
+  }
+
   const job = claimNextQueuedJob();
   if (!job) return false;
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { assertAssetAccess } from "@/lib/server/access";
 import { completePresignedAsset } from "@/lib/server/assets";
 
 const bodySchema = z.object({
@@ -14,6 +15,9 @@ export async function POST(request: Request) {
   }
 
   try {
+    const access = assertAssetAccess(request, parsed.data.assetId);
+    if ("error" in access) return access.error;
+
     const result = await completePresignedAsset(parsed.data.assetId);
     return NextResponse.json(result);
   } catch (err) {

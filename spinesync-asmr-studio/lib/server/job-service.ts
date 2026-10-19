@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import type { CreateJobBody, JobResult } from "@/lib/contract/job";
 import { formatLogTimestamp } from "@/lib/pipeline";
 import type { PipelineStageId } from "@/lib/types";
@@ -124,20 +124,34 @@ export function markJobRunning(jobId: string) {
 
 export function claimNextQueuedJob() {
   const db = getDb();
-  const job = db
-    .select()
-    .from(schema.jobs)
-    .where(eq(schema.jobs.status, "queued"))
-    .orderBy(asc(schema.jobs.createdAt))
-    .get();
-  if (!job) return null;
+  return db.transaction((tx) => {
+    const job = tx
+      .select()
+      .from(schema.jobs)
+      .where(eq(schema.jobs.status, "queued"))
+      .orderBy(asc(schema.jobs.createdAt))
+      .get();
+    if (!job) return null;
 
-  db.update(schema.jobs)
+    const result = tx
+      .update(schema.jobs)
+      .set({ status: "running", updatedAt: new Date() })
+      .where(and(eq(schema.jobs.id, job.id), eq(schema.jobs.status, "queued")))
+      .run();
+    if (result.changes === 0) return null;
+    return job;
+  });
+}
+
+export function tryClaimJobById(jobId: string) {
+  const db = getDb();
+  const result = db
+    .update(schema.jobs)
     .set({ status: "running", updatedAt: new Date() })
-    .where(eq(schema.jobs.id, job.id))
+    .where(and(eq(schema.jobs.id, jobId), eq(schema.jobs.status, "queued")))
     .run();
-
-  return job;
+  if (result.changes === 0) return null;
+  return getJobById(jobId);
 }
 
 export function getJobById(jobId: string) {
