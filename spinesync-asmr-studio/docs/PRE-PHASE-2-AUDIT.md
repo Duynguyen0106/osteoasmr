@@ -152,6 +152,14 @@ Explicitly **out of scope** for Phase 2 unless product asks: multi-user review, 
 
 When smoke is checked, proceed to Phase 2.2 (edit persistence / asset store).
 
+### Phase 2.2 — edit persistence
+
+- [x] Save meaningful `edit` to `localStorage` (debounced) keyed by `assetId` and/or upload file fingerprint
+- [x] Restore on re-open / refresh when the same asset or file is loaded
+- [x] Job History restore also writes storage so editor + pipeline stay aligned
+- [x] `ReelProEditor` accepts `initialEdit` for remount after restore
+- [ ] Manual smoke: edit → refresh page → trim/captions still present
+
 ---
 
 ## 9. Related docs
