@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { PipelineBanner } from "@/components/layout/PipelineBanner";
 import { IngestionPanel } from "@/components/ingestion/IngestionPanel";
 import { FocusSelector } from "@/components/controls/FocusSelector";
+import { AsmrSoundProfileCard } from "@/components/controls/AsmrSoundProfileCard";
 import { ProcessingControls } from "@/components/controls/ProcessingControls";
 import { RunPipelineButton } from "@/components/pipeline/RunPipelineButton";
 import { TerminalConsole } from "@/components/pipeline/TerminalConsole";
@@ -43,6 +44,7 @@ export function StudioDashboard() {
     sfxCrack: true,
     tiktokSubs: true,
   });
+  const [liveAsmrPreview, setLiveAsmrPreview] = useState(true);
 
   const mock = usePipeline();
   const server = usePipelineServer({
@@ -265,6 +267,12 @@ export function StudioDashboard() {
               toggles={toggles}
               onToggle={handleToggle}
             />
+            <AsmrSoundProfileCard
+              focus={focus}
+              eqBoost={eqBoost}
+              livePreview={liveAsmrPreview}
+              onLivePreviewChange={setLiveAsmrPreview}
+            />
             <RunPipelineButton
               running={pipeline.running || uploading}
               disabled={!canRunPipeline}
@@ -285,7 +293,7 @@ export function StudioDashboard() {
 
           <div className="space-y-4 lg:col-span-7">
             <VerticalReelPlayer
-              key={`${previewVideoUrl ?? "sample"}-${preset.id}-${peakTimeSec}`}
+              key={`${previewVideoUrl ?? "sample"}-${preset.id}-${peakTimeSec}-${liveAsmrPreview}`}
               preset={preset}
               eqBoost={eqBoost}
               tiktokSubs={toggles.tiktokSubs}
@@ -298,6 +306,8 @@ export function StudioDashboard() {
                 sourceAudio.envelope.length ? sourceAudio.envelope : null
               }
               audioDurationSec={sourceAudio.durationSec}
+              focus={focus}
+              liveAsmrPreview={liveAsmrPreview && Boolean(previewVideoUrl) && !jobResult?.previewUrls?.reel}
               onRefreshMedia={
                 refreshJobMedia
                   ? () => {

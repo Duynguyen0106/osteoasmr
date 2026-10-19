@@ -6,6 +6,7 @@ import type { PipelineStageId } from "@/lib/types";
 import type { CaptionSegment } from "./captions";
 import { fallbackCaptionSegments } from "./captions";
 import { presetHeadline, presetPeakDefaults } from "./copy";
+import { getAsmrProfile, eqBoostToGainDb } from "@/lib/asmr-profiles";
 import { renderEqAudio } from "./audio-eq";
 import {
   detectPeakTimeSec,
@@ -33,10 +34,6 @@ function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function gainDbFromPercent(eqBoost: number) {
-  return Math.round((eqBoost / 100) * 12 * 10) / 10;
-}
-
 export async function runJobPipeline(jobId: string, config: CreateJobBody) {
   const dir = jobDir(jobId);
   await fs.promises.mkdir(dir, { recursive: true });
@@ -61,7 +58,8 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
       })
     : undefined;
   const defaults = presetPeakDefaults(config.presetId, config.focus);
-  const gainDb = gainDbFromPercent(config.eqBoost);
+  const gainDb = eqBoostToGainDb(config.eqBoost);
+  const asmrProfileMeta = getAsmrProfile(config.focus);
   const eqAudioPath = path.join(dir, "audio-eq.wav");
   const vttPath = path.join(dir, "captions.vtt");
   const segmentsPath = path.join(dir, "segments.json");
@@ -100,7 +98,8 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
           await renderEqAudio({
             sourcePath,
             outputPath: eqAudioPath,
-            gainDb,
+            focus: config.focus,
+            eqBoost: config.eqBoost,
             sfxCrack: config.toggles.sfxCrack,
             peakTimeSec: peak.timeSec,
           });
@@ -111,7 +110,7 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
         );
         appendJobLog(
           jobId,
-          `Peaks locked @ ${peak.timeSec}s · ASMR EQ +${peak.freqGainDb} dB @ ${peak.freqKhz}kHz applied${config.toggles.sfxCrack ? " · synthesized crack layer merged" : ""}`,
+          `Peaks locked @ ${peak.timeSec}s · ${asmrProfileMeta.label} · EQ +${gainDb} dB @ ${asmrProfileMeta.centerHz} Hz${config.toggles.sfxCrack ? " · crack layer @ peak" : ""}`,
         );
       } else if (stageId === "whisper") {
         const whisperAudio = path.join(dir, "whisper.mp3");
@@ -254,6 +253,14 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
 
     const result: JobResult = {
       peak,
+      asmrProfile: {
+        focus: config.focus,
+        label: asmrProfileMeta.label,
+        centerHz: asmrProfileMeta.centerHz,
+        gainDb,
+        eqBoost: config.eqBoost,
+        sfxCrack: config.toggles.sfxCrack,
+      },
       copy: jobCopy,
       captionSegments,
       artifacts: {

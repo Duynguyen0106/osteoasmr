@@ -1,3 +1,4 @@
+import { getAsmrProfile } from "@/lib/asmr-profiles";
 import { getActivePreset, getPresetById } from "@/lib/samples";
 import { buildJobCopy as buildJobCopyShared } from "@/lib/build-job-copy";
 import type { CreateJobBody } from "@/lib/contract/job";
@@ -19,10 +20,11 @@ export function presetPeakDefaults(
   focus: CreateJobBody["focus"],
 ) {
   const p = getActivePreset(presetId ?? null, focus);
+  const profile = getAsmrProfile(focus);
   return {
     peakDb: p.peakDb,
     freqGainDb: p.freqGainDb,
-    freqKhz: p.freqKhz,
+    freqKhz: profile.freqKhz,
   };
 }
 

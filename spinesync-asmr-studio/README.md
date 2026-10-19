@@ -81,6 +81,8 @@ Open [http://localhost:3000](http://localhost:3000).
 
 UI karaoke subtitles use `captionSegments` from completed jobs when available.
 
+ASMR sound architecture and roadmap: [`docs/ASMR-SOUND.md`](docs/ASMR-SOUND.md).
+
 ## Phase C — storage, queue, Remotion, auth
 
 | Feature | Env / usage |

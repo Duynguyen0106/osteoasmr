@@ -54,8 +54,20 @@ export interface CaptionSegment {
   words?: { word: string; start: number; end: number }[];
 }
 
+export type FocusCategory = z.infer<typeof focusCategorySchema>;
+
+export interface AsmrProfileSnapshot {
+  focus: FocusCategory;
+  label: string;
+  centerHz: number;
+  gainDb: number;
+  eqBoost: number;
+  sfxCrack: boolean;
+}
+
 export interface JobResult {
   peak: PeakResult;
+  asmrProfile?: AsmrProfileSnapshot;
   artifacts: {
     reel?: string;
     thumb?: string;
