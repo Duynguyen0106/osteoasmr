@@ -2,6 +2,7 @@
 
 import { Pause, Play } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { CaptionSegment } from "@/lib/contract/job";
 import { SubtitleOverlay } from "./SubtitleOverlay";
 import { WaveformCanvas } from "./WaveformCanvas";
 import type { SamplePreset } from "@/lib/types";
@@ -16,6 +17,7 @@ interface VerticalReelPlayerProps {
   sfxCrack: boolean;
   videoUrl: string | null;
   peakTimeSec: number;
+  captionSegments?: CaptionSegment[] | null;
 }
 
 export function VerticalReelPlayer({
@@ -26,6 +28,7 @@ export function VerticalReelPlayer({
   sfxCrack,
   videoUrl,
   peakTimeSec,
+  captionSegments,
 }: VerticalReelPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -37,6 +40,8 @@ export function VerticalReelPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [subtitleIndex, setSubtitleIndex] = useState(0);
   const [playError, setPlayError] = useState<string | null>(null);
+  const [displayTimeSec, setDisplayTimeSec] = useState(0);
+  const hasKaraoke = Boolean(captionSegments?.length);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
@@ -60,12 +65,12 @@ export function VerticalReelPlayer({
   const getTimeSec = useCallback(() => timeRef.current, []);
 
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || hasKaraoke) return;
     const id = setInterval(() => {
       setSubtitleIndex((i) => (i + 1) % preset.subtitles.length);
     }, 2800);
     return () => clearInterval(id);
-  }, [isPlaying, preset.subtitles.length]);
+  }, [isPlaying, preset.subtitles.length, hasKaraoke]);
 
   useEffect(() => {
     if (!isPlaying || videoUrl) return;
@@ -81,20 +86,22 @@ export function VerticalReelPlayer({
       }
       mockOffsetRef.current = t;
       timeRef.current = t;
+      if (hasKaraoke) setDisplayTimeSec(t);
       applyPeakZoom(t);
       raf = requestAnimationFrame(tick);
     };
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [isPlaying, videoUrl, applyPeakZoom]);
+  }, [isPlaying, videoUrl, applyPeakZoom, hasKaraoke]);
 
   const handleTimeUpdate = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     timeRef.current = video.currentTime;
+    if (hasKaraoke) setDisplayTimeSec(video.currentTime);
     applyPeakZoom(video.currentTime);
-  }, [applyPeakZoom]);
+  }, [applyPeakZoom, hasKaraoke]);
 
   const togglePlay = useCallback(async () => {
     setPlayError(null);
@@ -168,7 +175,12 @@ export function VerticalReelPlayer({
             </span>
           )}
 
-          <SubtitleOverlay text={subtitle} enabled={tiktokSubs} />
+          <SubtitleOverlay
+            text={subtitle}
+            enabled={tiktokSubs}
+            segments={captionSegments}
+            playbackTimeSec={displayTimeSec}
+          />
 
           <WaveformCanvas
             isPlaying={isPlaying}

@@ -258,6 +258,7 @@ export function StudioDashboard() {
               sfxCrack={toggles.sfxCrack}
               videoUrl={previewVideoUrl}
               peakTimeSec={peakTimeSec}
+              captionSegments={jobResult?.captionSegments ?? null}
             />
             <div className="grid gap-4 md:grid-cols-2">
               <PeakSoundAnalytics

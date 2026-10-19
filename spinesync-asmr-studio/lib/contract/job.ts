@@ -47,6 +47,13 @@ export interface JobCopyResult {
   revision: number;
 }
 
+export interface CaptionSegment {
+  start: number;
+  end: number;
+  text: string;
+  words?: { word: string; start: number; end: number }[];
+}
+
 export interface JobResult {
   peak: PeakResult;
   artifacts: {
@@ -56,9 +63,12 @@ export interface JobResult {
     copy?: string;
   };
   copy?: JobCopyResult;
+  captionSegments?: CaptionSegment[];
   previewUrls?: {
     reel?: string;
     thumb?: string;
+    captions?: string;
+    karaoke?: string;
   };
 }
 

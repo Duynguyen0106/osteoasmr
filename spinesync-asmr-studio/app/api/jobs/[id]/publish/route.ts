@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import type { JobCopyResult, JobResult } from "@/lib/contract/job";
 import { publishBodySchema } from "@/lib/contract/job";
+import { publishViaAyrshare } from "@/lib/server/ayrshare";
 import { appendJobLog, getJobById } from "@/lib/server/job-service";
 
 export async function POST(
@@ -12,24 +14,46 @@ export async function POST(
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
+  if (job.status !== "completed") {
+    return NextResponse.json(
+      { error: "Job must complete before publish" },
+      { status: 409 },
+    );
+  }
+
   const json = await request.json();
   const parsed = publishBodySchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid publish payload" }, { status: 400 });
   }
 
-  const { mode, platforms } = parsed.data;
-  if (mode === "immediate") {
-    appendJobLog(
-      id,
-      `Ayrshare · Post Immediately → ${platforms.join(", ")}`,
-    );
-  } else {
-    appendJobLog(
-      id,
-      `Ayrshare · Queued for peak hour (18:00 local) · ${platforms.length} channels`,
-    );
+  let copy: JobCopyResult | undefined;
+  if (job.resultJson) {
+    try {
+      copy = (JSON.parse(job.resultJson) as JobResult).copy;
+    } catch {
+      copy = undefined;
+    }
   }
 
-  return NextResponse.json({ ok: true, mode, platforms });
+  const caption = copy?.instagram ?? "SpineSync ASMR · Book link in bio";
+
+  const outcome = await publishViaAyrshare({
+    jobId: id,
+    caption,
+    publish: parsed.data,
+  });
+
+  const { mode, platforms } = parsed.data;
+  if (outcome.ok) {
+    appendJobLog(
+      id,
+      `Ayrshare (${outcome.provider}) · ${mode === "immediate" ? "Post Immediately" : "Queue Peak Hour"} → ${platforms.join(", ")} · ${outcome.detail}${outcome.postId ? ` · id=${outcome.postId}` : ""}`,
+    );
+  } else {
+    appendJobLog(id, `Ayrshare error · ${outcome.detail}`);
+    return NextResponse.json({ error: outcome.detail }, { status: 502 });
+  }
+
+  return NextResponse.json({ mode, platforms, ...outcome });
 }

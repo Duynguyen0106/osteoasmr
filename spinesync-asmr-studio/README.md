@@ -62,10 +62,19 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Server pipeline stages
 
 1. **eq** — peak scan (ffmpeg volumedetect windows) + EQ wav  
-2. **whisper** — placeholder WebVTT (Whisper API ready to swap in)  
-3. **remotion** — ffmpeg 9:16 H.264 (`reel.mp4`)  
+2. **whisper** — **OpenAI Whisper** when `OPENAI_API_KEY` set; else fallback VTT + `segments.json`  
+3. **remotion** — ffmpeg 9:16 H.264 with optional **burned captions** + EQ audio + micro-zoom (ffmpeg fallback if complex filter fails)  
 4. **thumbnail** — frame at detected peak  
-5. **gpt** — template copy → `copy.json` + UI revision bump  
-6. **dispatch** — `publish.json` armed state  
+5. **gpt** — **GPT-4o / gpt-4o-mini** JSON copy when OpenAI configured; else templates  
+6. **dispatch** — `publish.json`; **Ayrshare POST** when `AYRSHARE_API_KEY` + public `APP_BASE_URL`  
 
-Whisper, Remotion Lambda, GPT-4o, and live Ayrshare are **stubbed** with real artifact paths and hooks for Phase B/C.
+### Phase B env vars
+
+| Variable | Purpose |
+|----------|---------|
+| `OPENAI_API_KEY` | Whisper transcription + GPT copy |
+| `OPENAI_COPY_MODEL` | Default `gpt-4o-mini` |
+| `AYRSHARE_API_KEY` | Live social dispatch |
+| `APP_BASE_URL` | Public URL for `mediaUrls` (required for Ayrshare to fetch reel) |
+
+UI karaoke subtitles use `captionSegments` from completed jobs when available.
