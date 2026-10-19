@@ -1,4 +1,11 @@
-import { hasS3Config, s3CloudFrontDomain, s3Region, storageDriverEnv } from "../config";
+import {
+  hasBlobConfig,
+  hasS3Config,
+  s3CloudFrontDomain,
+  s3Region,
+  storageDriverEnv,
+} from "../config";
+import { BlobStorageProvider } from "./blob";
 import { LocalStorageProvider } from "./local";
 import { S3StorageProvider } from "./s3";
 import type { StorageProvider } from "./types";
@@ -10,7 +17,9 @@ const globalForStorage = globalThis as unknown as {
 export function getStorage(): StorageProvider {
   if (!globalForStorage.storage) {
     const driver = storageDriverEnv();
-    if (driver === "s3" && hasS3Config()) {
+    if (driver === "blob" && hasBlobConfig()) {
+      globalForStorage.storage = new BlobStorageProvider();
+    } else if (driver === "s3" && hasS3Config()) {
       globalForStorage.storage = new S3StorageProvider({
         bucket: process.env.AWS_S3_BUCKET!,
         region: s3Region(),

@@ -99,7 +99,7 @@ function ensureGeneratedSecrets(vars) {
     next.SPINESYNC_MEDIA_TOKEN_SECRET = randomBytes(32).toString("hex");
     console.log("Generated SPINESYNC_MEDIA_TOKEN_SECRET");
   }
-  if (!next.STORAGE_DRIVER?.trim()) next.STORAGE_DRIVER = "s3";
+  if (!next.STORAGE_DRIVER?.trim()) next.STORAGE_DRIVER = "blob";
   if (!next.NEXT_PUBLIC_PIPELINE_MODE?.trim()) {
     next.NEXT_PUBLIC_PIPELINE_MODE = "server";
   }
@@ -114,29 +114,45 @@ async function syncEnv(fileArg) {
     appRoot,
     fileArg ?? ".env.vercel.production",
   );
-  if (!fs.existsSync(filePath)) {
+  const { projectId } = loadProjectMeta();
+  /** @type {Record<string, string>} */
+  let vars;
+  if (fs.existsSync(filePath)) {
+    vars = ensureGeneratedSecrets(parseEnvFile(filePath));
+  } else if (process.argv[3] === "--minimal") {
+    vars = ensureGeneratedSecrets({
+      STORAGE_DRIVER: "blob",
+      APP_BASE_URL: "https://spinesync-asmr-studio.vercel.app",
+      NEXT_PUBLIC_PIPELINE_MODE: "server",
+      SPINESYNC_DATA_ROOT: "/tmp/spinesync",
+    });
+  } else {
     throw new Error(
-      `Create ${filePath} from .env.vercel.production.example (AWS keys required).`,
+      `Create ${filePath} from .env.vercel.production.example, or run: npm run vercel:sync-env -- --minimal`,
     );
   }
 
-  const { projectId } = loadProjectMeta();
-  let vars = ensureGeneratedSecrets(parseEnvFile(filePath));
-
-  const missing = ["AWS_S3_BUCKET", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"].filter(
-    (k) => !vars[k]?.trim(),
-  );
-  if (missing.length) {
-    throw new Error(`Missing required values in ${filePath}: ${missing.join(", ")}`);
+  const driver = (vars.STORAGE_DRIVER ?? "blob").toLowerCase();
+  if (driver === "s3") {
+    const missing = ["AWS_S3_BUCKET", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"].filter(
+      (k) => !vars[k]?.trim(),
+    );
+    if (missing.length) {
+      throw new Error(`Missing required values for S3: ${missing.join(", ")}`);
+    }
   }
 
+  await upsertProjectEnv(projectId, vars);
+
+  console.log("\nEnv sync done. Redeploy production for changes to apply:");
+  console.log("  npm run vercel:deploy");
+}
+
+async function upsertProjectEnv(projectId, vars) {
   const existing = await vercelFetch(
     `/v9/projects/${projectId}/env?decrypt=false`,
   );
-  const byKey = new Map(
-    (existing.envs ?? []).map((e) => [e.key, e]),
-  );
-
+  const byKey = new Map((existing.envs ?? []).map((e) => [e.key, e]));
   const targets = ["production", "preview", "development"];
 
   for (const key of TRACK_A_KEYS) {
@@ -150,7 +166,7 @@ async function syncEnv(fileArg) {
         body: JSON.stringify({
           value,
           target: targets,
-          type: key.includes("SECRET") || key.includes("KEY") ? "encrypted" : "encrypted",
+          type: "encrypted",
         }),
       });
       console.log(`Updated ${key}`);
@@ -167,23 +183,34 @@ async function syncEnv(fileArg) {
       console.log(`Created ${key}`);
     }
   }
-
-  console.log("\nEnv sync done. Redeploy production for changes to apply:");
-  console.log("  npm run vercel:deploy");
 }
 
+const DEPLOY_HOOK_URL =
+  process.env.VERCEL_DEPLOY_HOOK_URL ??
+  "https://api.vercel.com/v1/integrations/deploy/prj_zCuRuTgw5fQaksTLY9DsJqwJFKts/mWwPQxbbmh";
+
 async function deployProduction() {
-  const { projectId, orgId } = loadProjectMeta();
   const productionUrl =
     process.env.PRODUCTION_URL ?? "https://spinesync-asmr-studio.vercel.app";
 
+  try {
+    const hookRes = await fetch(DEPLOY_HOOK_URL, { method: "POST" });
+    const hookBody = await hookRes.json().catch(() => ({}));
+    if (hookRes.ok) {
+      console.log(JSON.stringify({ via: "deploy-hook", ...hookBody }, null, 2));
+      return;
+    }
+    console.warn(`Deploy hook failed (${hookRes.status}), falling back to git deploy API…`);
+  } catch (err) {
+    console.warn(`Deploy hook error: ${err instanceof Error ? err.message : err}`);
+  }
+
+  const { projectId, orgId } = loadProjectMeta();
   const project = await vercelFetch(
     `/v9/projects/${projectId}${orgId ? `?teamId=${orgId}` : ""}`,
   );
   const repoId = project.link?.repoId;
-  if (!repoId) {
-    throw new Error("Project is not linked to a GitHub repo.");
-  }
+  if (!repoId) throw new Error("Project is not linked to a GitHub repo.");
 
   const ref = project.link?.productionBranch ?? "main";
   const shaRes = await fetch(
@@ -199,42 +226,31 @@ async function deployProduction() {
     throw new Error(`Could not resolve ${ref} SHA from GitHub (${shaRes.status}).`);
   }
   const commit = await shaRes.json();
-  const sha = commit.sha;
-
-  const body = {
-    name: project.name,
-    project: projectId,
-    target: "production",
-    gitSource: {
-      type: "github",
-      repoId,
-      ref,
-      sha,
-    },
-  };
 
   try {
     const deployment = await vercelFetch(
       `/v13/deployments${orgId ? `?teamId=${orgId}` : ""}`,
-      { method: "POST", body: JSON.stringify(body) },
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name: project.name,
+          project: projectId,
+          target: "production",
+          gitSource: {
+            type: "github",
+            repoId,
+            ref,
+            sha: commit.sha,
+          },
+        }),
+      },
     );
-    console.log(
-      JSON.stringify(
-        {
-          id: deployment.id,
-          url: deployment.url,
-          inspectorUrl: deployment.inspectorUrl,
-          readyState: deployment.readyState,
-        },
-        null,
-        2,
-      ),
-    );
+    console.log(JSON.stringify({ via: "git-api", ...deployment }, null, 2));
   } catch (err) {
     if (String(err.message).includes("api-deployments-free-per-day")) {
       console.error(err.message);
       console.error(
-        `\nDaily deploy quota exhausted. Redeploy from the Vercel dashboard after reset, or wait and run:\n  PRODUCTION_URL=${productionUrl} npm run vercel:deploy`,
+        `\nDaily deploy quota exhausted. Use the deploy hook or Vercel dashboard → Deployments → Redeploy (Git, not CLI).\n  PRODUCTION_URL=${productionUrl}`,
       );
       process.exit(1);
     }
@@ -259,15 +275,26 @@ async function status() {
   ]);
 
   const envKeys = (envRes.envs ?? []).map((e) => e.key).sort();
-  const required = [
-    "STORAGE_DRIVER",
-    "AWS_S3_BUCKET",
-    "AWS_REGION",
-    "AWS_ACCESS_KEY_ID",
-    "AWS_SECRET_ACCESS_KEY",
-    "SPINESYNC_SESSION_SECRET",
-    "SPINESYNC_MEDIA_TOKEN_SECRET",
-  ];
+  const usesBlob =
+    envKeys.includes("BLOB_READ_WRITE_TOKEN") ||
+    (await vercelFetch(`/v9/projects/${projectId}/env?decrypt=false`))
+      .envs?.some((e) => e.key === "STORAGE_DRIVER");
+  const required = usesBlob
+    ? [
+        "STORAGE_DRIVER",
+        "BLOB_READ_WRITE_TOKEN",
+        "SPINESYNC_SESSION_SECRET",
+        "SPINESYNC_MEDIA_TOKEN_SECRET",
+      ]
+    : [
+        "STORAGE_DRIVER",
+        "AWS_S3_BUCKET",
+        "AWS_REGION",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "SPINESYNC_SESSION_SECRET",
+        "SPINESYNC_MEDIA_TOKEN_SECRET",
+      ];
   const envMissing = required.filter((k) => !envKeys.includes(k));
 
   /** @type {Record<string, unknown>} */

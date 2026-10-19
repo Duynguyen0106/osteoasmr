@@ -100,8 +100,11 @@ export function isEphemeralHosting(): boolean {
   return root === "/tmp/spinesync" || root?.startsWith("/tmp/") === true;
 }
 
-export function pipelineMediaReady(storageDriver: "local" | "s3", s3Ok: boolean): boolean {
-  if (storageDriver === "s3" && s3Ok) return true;
+export function pipelineMediaReady(
+  storageDriver: "local" | "s3" | "blob",
+  durableOk: boolean,
+): boolean {
+  if (storageDriver !== "local" && durableOk) return true;
   if (isEphemeralHosting() && storageDriver === "local") return false;
   return true;
 }

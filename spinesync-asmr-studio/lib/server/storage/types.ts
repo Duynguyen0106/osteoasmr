@@ -1,4 +1,8 @@
-export type StorageDriver = "local" | "s3";
+export type StorageDriver = "local" | "s3" | "blob";
+
+export function isCloudStorageDriver(driver: StorageDriver): boolean {
+  return driver === "s3" || driver === "blob";
+}
 
 export interface PresignUploadResult {
   assetId: string;
