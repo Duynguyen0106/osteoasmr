@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { previewReelBodySchema } from "@/lib/contract/preview-reel";
+import { previewBodySchema } from "@/lib/contract/preview-reel";
 import { assertAssetAccess } from "@/lib/server/access";
 import { buildIncrementalReelPreview } from "@/lib/server/incremental-preview";
+import { buildIncrementalThumbPreview } from "@/lib/server/incremental-thumb";
 
 export async function POST(request: Request) {
   let json: unknown;
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const parsed = previewReelBodySchema.safeParse(json);
+  const parsed = previewBodySchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.flatten().fieldErrors },
@@ -22,8 +23,19 @@ export async function POST(request: Request) {
   const access = assertAssetAccess(request, parsed.data.assetId);
   if ("error" in access) return access.error;
 
+  const { kind, ...body } = parsed.data;
+
   try {
-    const result = await buildIncrementalReelPreview(parsed.data, access.asset);
+    if (kind === "thumb") {
+      const headline = body.headline?.trim() || "SPINESYNC ASMR";
+      const result = await buildIncrementalThumbPreview(
+        body,
+        access.asset,
+        headline,
+      );
+      return NextResponse.json(result);
+    }
+    const result = await buildIncrementalReelPreview(body, access.asset);
     return NextResponse.json(result);
   } catch (err) {
     const message =

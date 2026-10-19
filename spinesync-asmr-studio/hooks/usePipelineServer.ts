@@ -270,7 +270,7 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
         appendLog("Ayrshare · No completed server job — run pipeline first");
         return;
       }
-      const res = await spinesyncFetch(`/api/jobs/${jobId}/publish`, {
+      const res = await spinesyncFetch(`/api/jobs/${jobId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode, platforms: ["Instagram Reels", "TikTok", "YouTube Shorts", "Facebook Reels"] }),

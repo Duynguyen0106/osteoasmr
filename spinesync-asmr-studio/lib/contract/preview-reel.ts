@@ -11,3 +11,9 @@ export const previewReelBodySchema = z.object({
 });
 
 export type PreviewReelBody = z.infer<typeof previewReelBodySchema>;
+
+export const previewBodySchema = previewReelBodySchema.extend({
+  kind: z.enum(["reel", "thumb"]).default("reel"),
+});
+
+export type PreviewBody = z.infer<typeof previewBodySchema>;

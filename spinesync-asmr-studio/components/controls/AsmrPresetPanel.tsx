@@ -101,9 +101,10 @@ export function AsmrPresetPanel({ settings, onApply, enabled }: AsmrPresetPanelP
 
   const handleDelete = async () => {
     if (!selectedId) return;
-    const res = await spinesyncFetch(`/api/asmr-presets/${selectedId}`, {
-      method: "DELETE",
-    });
+    const res = await spinesyncFetch(
+      `/api/asmr-presets?id=${encodeURIComponent(selectedId)}`,
+      { method: "DELETE" },
+    );
     if (res.ok) {
       setSelectedId("");
       setRefreshKey((k) => k + 1);

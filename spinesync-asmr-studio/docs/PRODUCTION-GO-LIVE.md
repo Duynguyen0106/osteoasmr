@@ -2,6 +2,10 @@
 
 Use this checklist to turn **spinesync-asmr-studio** from a UI demo into a working server pipeline on Vercel.
 
+## Hobby plan (≤12 serverless functions)
+
+API routes are consolidated (`/api/preview`, `/api/assets`, publish via `POST /api/jobs/:id`) so the app fits Vercel Hobby’s function limit.
+
 ## 1. Vercel project settings
 
 | Setting | Value |
