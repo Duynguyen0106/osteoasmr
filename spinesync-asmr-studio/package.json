@@ -6,9 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "worker:pipeline": "tsx scripts/pipeline-worker.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1152.0",
+    "@aws-sdk/s3-request-presigner": "^3.1152.0",
     "better-sqlite3": "^13.0.3",
     "canvas-confetti": "^1.9.4",
     "drizzle-orm": "^0.45.4",
@@ -22,6 +25,9 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@remotion/bundler": "^4.0.536",
+    "@remotion/cli": "^4.0.536",
+    "@remotion/renderer": "^4.0.536",
     "@tailwindcss/turbopack": "^4",
     "@types/better-sqlite3": "^9.6.0",
     "@types/canvas-confetti": "^1.9.0",
@@ -32,7 +38,9 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
+    "remotion": "^4.0.536",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

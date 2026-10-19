@@ -21,17 +21,7 @@ import { getActivePreset, getPresetById } from "@/lib/samples";
 import { PEAK_TIME_SEC } from "@/lib/waveform";
 import type { FocusCategory, ProcessingToggles } from "@/lib/types";
 
-async function uploadAsset(file: File): Promise<string> {
-  const form = new FormData();
-  form.append("file", file);
-  const res = await fetch("/api/assets/upload", { method: "POST", body: form });
-  if (!res.ok) {
-    const err = (await res.json()) as { error?: string };
-    throw new Error(err.error ?? "Upload failed");
-  }
-  const data = (await res.json()) as { assetId: string };
-  return data.assetId;
-}
+import { uploadAssetSmart } from "@/lib/upload-client";
 
 export function StudioDashboard() {
   const [file, setFile] = useState<File | null>(null);
@@ -52,7 +42,7 @@ export function StudioDashboard() {
     assetId,
     onNeedAsset: async () => {
       if (file) {
-        const id = await uploadAsset(file);
+        const id = await uploadAssetSmart(file);
         setAssetId(id);
         return id;
       }
@@ -94,7 +84,7 @@ export function StudioDashboard() {
       if (isServerPipeline) {
         setUploading(true);
         try {
-          const id = await uploadAsset(f);
+          const id = await uploadAssetSmart(f);
           setAssetId(id);
           appendLog(`Server asset registered · ${id.slice(0, 8)}…`);
         } catch (err) {

@@ -12,6 +12,7 @@ import {
   probeDurationSec,
   runFfmpeg,
 } from "./ffmpeg";
+import { materializeAssetLocalPath } from "./assets";
 import {
   appendJobLog,
   completeJob,
@@ -21,9 +22,10 @@ import {
   updateJobStage,
 } from "./job-service";
 import { generateGptCopy, headlineForConfig, prepareWhisperAudio, transcribeWhisper } from "./openai";
-import { hasOpenAI } from "./config";
+import { hasOpenAI, remotionRenderMode } from "./config";
 import { jobDir } from "./paths";
 import { renderReel916 } from "./render";
+import { renderRemotionLocal } from "./remotion-render";
 
 function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -49,7 +51,13 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
   );
 
   const asset = config.assetId ? getAssetById(config.assetId) : undefined;
-  const sourcePath = asset?.storagePath;
+  const sourcePath = asset
+    ? await materializeAssetLocalPath({
+        storagePath: asset.storagePath,
+        storageKey: asset.storageKey,
+        storageDriver: asset.storageDriver,
+      })
+    : undefined;
   const defaults = presetPeakDefaults(config.presetId, config.focus);
   const gainDb = gainDbFromPercent(config.eqBoost);
   const eqAudioPath = path.join(dir, "audio-eq.wav");
@@ -122,31 +130,53 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
           appendJobLog(jobId, stage.logMessage);
         }
       } else if (stageId === "remotion") {
-        try {
-          await renderReel916({
-            sourcePath,
-            reelPath,
-            audioEqPath: eqAudioPath,
-            vttPath,
-            burnCaptions: config.toggles.tiktokSubs,
-            peakTimeSec: peak.timeSec,
-            autoPeakZoom: config.toggles.autoPeakZoom,
-          });
-          appendJobLog(
-            jobId,
-            `Remotion Lambda · 1080×1920 H.264 · ${config.toggles.tiktokSubs ? "burned captions · " : ""}${config.toggles.autoPeakZoom ? "micro-zoom @ peak" : "standard crop"}`,
-          );
-        } catch {
-          await renderReel916({
-            sourcePath,
-            reelPath,
-            audioEqPath: eqAudioPath,
-            vttPath,
-            burnCaptions: false,
-            peakTimeSec: peak.timeSec,
-            autoPeakZoom: false,
-          });
-          appendJobLog(jobId, "Remotion · fallback render (simplified ffmpeg chain)");
+        const remotionMode = remotionRenderMode();
+        let rendered = false;
+        if (remotionMode === "local" && sourcePath) {
+          try {
+            await renderRemotionLocal({
+              sourcePath,
+              outputPath: reelPath,
+              peakTimeSec: peak.timeSec,
+              practitioner: "Dr. Smith | SpineSync",
+              cta: "SpineSync Clinic | Book Link in Bio",
+            });
+            rendered = true;
+            appendJobLog(jobId, "Remotion local · SpineSyncReel916 · 1080×1920");
+          } catch (err) {
+            appendJobLog(
+              jobId,
+              `Remotion local skipped · ${err instanceof Error ? err.message : "error"}`,
+            );
+          }
+        }
+        if (!rendered) {
+          try {
+            await renderReel916({
+              sourcePath,
+              reelPath,
+              audioEqPath: eqAudioPath,
+              vttPath,
+              burnCaptions: config.toggles.tiktokSubs,
+              peakTimeSec: peak.timeSec,
+              autoPeakZoom: config.toggles.autoPeakZoom,
+            });
+            appendJobLog(
+              jobId,
+              `Remotion Lambda (ffmpeg) · 1080×1920 · ${config.toggles.tiktokSubs ? "burned captions · " : ""}${config.toggles.autoPeakZoom ? "micro-zoom @ peak" : "standard crop"}`,
+            );
+          } catch {
+            await renderReel916({
+              sourcePath,
+              reelPath,
+              audioEqPath: eqAudioPath,
+              vttPath,
+              burnCaptions: false,
+              peakTimeSec: peak.timeSec,
+              autoPeakZoom: false,
+            });
+            appendJobLog(jobId, "Remotion · fallback render (simplified ffmpeg chain)");
+          }
         }
       } else if (stageId === "thumbnail") {
         const input = (await fileExists(reelPath)) ? reelPath : sourcePath;

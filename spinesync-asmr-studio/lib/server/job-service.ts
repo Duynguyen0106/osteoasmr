@@ -88,13 +88,18 @@ export function failJob(jobId: string, message: string) {
   emitJobEvent(jobId, { type: "error", message });
 }
 
-export function createJobRecord(config: CreateJobBody, assetId?: string) {
+export function createJobRecord(
+  config: CreateJobBody,
+  projectId: string,
+  assetId?: string,
+) {
   const db = getDb();
   const id = crypto.randomUUID();
   const now = new Date();
   db.insert(schema.jobs)
     .values({
       id,
+      projectId,
       assetId: assetId ?? null,
       status: "queued",
       configJson: JSON.stringify(config),
@@ -115,6 +120,24 @@ export function markJobRunning(jobId: string) {
     .set({ status: "running", updatedAt: new Date() })
     .where(eq(schema.jobs.id, jobId))
     .run();
+}
+
+export function claimNextQueuedJob() {
+  const db = getDb();
+  const job = db
+    .select()
+    .from(schema.jobs)
+    .where(eq(schema.jobs.status, "queued"))
+    .orderBy(asc(schema.jobs.createdAt))
+    .get();
+  if (!job) return null;
+
+  db.update(schema.jobs)
+    .set({ status: "running", updatedAt: new Date() })
+    .where(eq(schema.jobs.id, job.id))
+    .run();
+
+  return job;
 }
 
 export function getJobById(jobId: string) {
