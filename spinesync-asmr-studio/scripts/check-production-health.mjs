@@ -19,6 +19,9 @@ if (!res.ok) {
 /** @type {Record<string, unknown>} */
 const health = await res.json();
 
+const staleDeploy =
+  !("hosting" in health) || !Array.isArray(health.pipelineBlockers);
+
 const ffmpeg = health.ffmpeg === true;
 const pipelineReady = health.hosting?.pipelineReady === true;
 const blockers = Array.isArray(health.pipelineBlockers)
@@ -27,12 +30,17 @@ const blockers = Array.isArray(health.pipelineBlockers)
 
 console.log(JSON.stringify(health, null, 2));
 
-if (pipelineReady && ffmpeg && blockers.length === 0) {
+if (pipelineReady && ffmpeg && blockers.length === 0 && !staleDeploy) {
   console.log("\nOK · Track A health gate passed");
   process.exit(0);
 }
 
 console.error("\nFAIL · Track A health gate");
+if (staleDeploy) {
+  console.error(
+    "  - production is on a stale deployment (missing hosting/pipelineBlockers) — redeploy main after Vercel env is set",
+  );
+}
 if (!ffmpeg) console.error("  - ffmpeg is not available");
 if (!pipelineReady) console.error("  - hosting.pipelineReady is false");
 for (const b of blockers) console.error(`  - ${b}`);
