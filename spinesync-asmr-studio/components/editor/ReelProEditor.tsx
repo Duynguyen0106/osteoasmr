@@ -28,6 +28,10 @@ interface ReelProEditorProps {
   captionSegments?: CaptionSegment[] | null;
   audioEnvelope?: number[] | null;
   initialEdit?: ReelEditState | null;
+  durationSourceLabel?: string;
+  durationMismatch?: boolean;
+  durationMismatchDetail?: string;
+  exportsEditsToPipeline?: boolean;
   onEditChange?: (edit: ReturnType<typeof useReelEditor>["edit"]) => void;
   onSeekPreview?: (clipTimeSec: number) => void;
 }
@@ -38,6 +42,10 @@ export function ReelProEditor({
   captionSegments,
   audioEnvelope,
   initialEdit,
+  durationSourceLabel,
+  durationMismatch,
+  durationMismatchDetail,
+  exportsEditsToPipeline = true,
   onEditChange,
   onSeekPreview,
 }: ReelProEditorProps) {
@@ -99,7 +107,9 @@ export function ReelProEditor({
             SpineSync Reel Pro Editor
           </h2>
           <p className="text-[11px] text-slate-400">
-            Trim · peak · captions · zoom — baked into the next pipeline export
+            {exportsEditsToPipeline
+              ? "Trim · peak · captions · zoom — baked into the next pipeline export"
+              : "Trim · peak · captions · zoom — preview only until server pipeline mode is enabled"}
           </p>
         </div>
         <div className="flex gap-1">
@@ -142,6 +152,9 @@ export function ReelProEditor({
 
       <TimelineMultiTrack
         sourceDurationSec={sourceDurationSec}
+        durationSourceLabel={durationSourceLabel}
+        durationMismatch={durationMismatch}
+        durationMismatchDetail={durationMismatchDetail}
         edit={editor.edit}
         playheadSec={editor.playheadSec}
         peakSec={editor.peakDisplay}

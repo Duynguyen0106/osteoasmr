@@ -46,7 +46,12 @@ import type { ReelEditState } from "@/lib/contract/reel-edit";
 import { defaultReelEdit } from "@/lib/contract/reel-edit";
 import { sourceCaptionsToClipPreview } from "@/lib/reel-edit/caption-timing";
 import { hasMeaningfulEdit } from "@/lib/reel-edit/edit-diff";
+import { mockReelEditBannerLine } from "@/lib/reel-edit/mock-export-hint";
 import { normalizeReelEdit } from "@/lib/reel-edit/normalize";
+import {
+  resolveSourceDuration,
+  sourceDurationLabel,
+} from "@/lib/reel-edit/source-duration";
 
 export function StudioDashboard() {
   const [file, setFile] = useState<File | null>(null);
@@ -120,12 +125,26 @@ export function StudioDashboard() {
     : undefined;
 
   const preset = getActivePreset(presetId, focus);
-  const sourceDurationSec = Math.max(
-    sourceAudio.durationSec,
-    videoSourceDurationSec,
-    jobResult?.peak.timeSec ? jobResult.peak.timeSec * 2 : 0,
-    0.1,
-  ) || 12;
+  const resolvedSourceDuration = useMemo(
+    () =>
+      resolveSourceDuration({
+        videoSec: videoSourceDurationSec,
+        audioSec: sourceAudio.durationSec,
+        fallbackSec:
+          jobResult?.peak.timeSec != null
+            ? Math.max(jobResult.peak.timeSec * 2, 12)
+            : 12,
+      }),
+    [
+      videoSourceDurationSec,
+      sourceAudio.durationSec,
+      jobResult?.peak.timeSec,
+    ],
+  );
+  const sourceDurationSec = resolvedSourceDuration.durationSec;
+  const durationMismatchDetail = resolvedSourceDuration.mismatch
+    ? `Video (${resolvedSourceDuration.videoSec.toFixed(1)}s) and decoded audio (${resolvedSourceDuration.audioSec.toFixed(1)}s) differ by ${resolvedSourceDuration.mismatchDeltaSec.toFixed(1)}s — timeline ruler follows ${sourceDurationLabel(resolvedSourceDuration.source)}.`
+    : undefined;
 
   const onPersistedEditRestored = useCallback(() => {
     appendLog("Restored reel edit from browser storage");
@@ -159,6 +178,12 @@ export function StudioDashboard() {
   }, [jobResult, localVideoUrl]);
 
   const editorEnabled = Boolean(file || previewVideoUrl);
+
+  const mockEditDetail = useMemo(() => {
+    if (isServerPipeline || !reelEdit) return null;
+    if (!hasMeaningfulEdit(reelEdit, sourceDurationSec)) return null;
+    return mockReelEditBannerLine(reelEdit, sourceDurationSec);
+  }, [reelEdit, sourceDurationSec]);
 
   const previewCaptionSegments = useMemo(() => {
     if (
@@ -402,9 +427,8 @@ export function StudioDashboard() {
       <StudioCapabilityBanner
         health={studioHealth}
         healthError={healthError}
-        mockEditPending={
-          !isServerPipeline && hasMeaningfulEdit(reelEdit, sourceDurationSec)
-        }
+        mockEditPending={Boolean(mockEditDetail)}
+        mockEditDetail={mockEditDetail}
       />
       {isServerPipeline && studioHealth?.hosting?.pipelineReady && (
         <p className="relative mx-auto max-w-7xl px-4 pt-1 text-center text-[10px] uppercase tracking-widest text-emerald-400/90 sm:px-6">
@@ -422,6 +446,12 @@ export function StudioDashboard() {
               sourceAudio.envelope.length ? sourceAudio.envelope : null
             }
             initialEdit={reelEdit}
+            durationSourceLabel={sourceDurationLabel(
+              resolvedSourceDuration.source,
+            )}
+            durationMismatch={resolvedSourceDuration.mismatch}
+            durationMismatchDetail={durationMismatchDetail}
+            exportsEditsToPipeline={isServerPipeline}
             onEditChange={setReelEdit}
             onSeekPreview={(t) => setEditorSeekClipSec(t)}
           />

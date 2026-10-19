@@ -13,6 +13,10 @@ function pct(time: number, duration: number) {
 
 interface TimelineMultiTrackProps {
   sourceDurationSec: number;
+  /** e.g. "video metadata" — shown on ruler */
+  durationSourceLabel?: string;
+  durationMismatch?: boolean;
+  durationMismatchDetail?: string;
   edit: ReelEditState;
   playheadSec: number;
   peakSec: number;
@@ -30,6 +34,9 @@ interface TimelineMultiTrackProps {
 
 export function TimelineMultiTrack({
   sourceDurationSec,
+  durationSourceLabel,
+  durationMismatch = false,
+  durationMismatchDetail,
   edit,
   playheadSec,
   peakSec,
@@ -56,12 +63,29 @@ export function TimelineMultiTrack({
 
   return (
     <div className="space-y-2 rounded-xl border border-slate-700/60 bg-slate-950/50 p-3">
-      <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-500">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[10px] uppercase tracking-wider text-slate-500">
         <span>Multi-track · source ruler</span>
-        <span className="font-mono text-cyan-400/90">
-          clip {clipDur.toFixed(1)}s / {sourceDur.toFixed(1)}s
+        <span className="font-mono normal-case text-slate-400">
+          {durationSourceLabel ? (
+            <>
+              ruler{" "}
+              <span className="text-cyan-400/90">{sourceDur.toFixed(1)}s</span>{" "}
+              <span className="text-slate-500">({durationSourceLabel})</span>
+            </>
+          ) : null}
+          <span className="ml-2 text-cyan-400/90">
+            clip {clipDur.toFixed(1)}s
+          </span>
         </span>
       </div>
+      {durationMismatch && durationMismatchDetail && (
+        <p
+          className="rounded-md border border-amber-500/25 bg-amber-950/30 px-2 py-1 text-[10px] normal-case text-amber-100"
+          role="status"
+        >
+          {durationMismatchDetail}
+        </p>
+      )}
 
       <div className="relative h-10 rounded-lg bg-slate-800/80 overflow-hidden">
         <div
