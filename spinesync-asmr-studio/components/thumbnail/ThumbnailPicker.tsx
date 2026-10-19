@@ -14,6 +14,8 @@ interface ThumbnailPickerProps {
   /** Clip-relative thumb time when set in editor (before export). */
   thumbTimeSec?: number | null;
   serverPipeline?: boolean;
+  /** Headline shown in placeholder / sent to quick thumb API (GPT when available). */
+  burnHeadline?: string;
 }
 
 export function ThumbnailPicker({
@@ -27,7 +29,9 @@ export function ThumbnailPicker({
   thumbSource = null,
   thumbTimeSec = null,
   serverPipeline = false,
+  burnHeadline,
 }: ThumbnailPickerProps) {
+  const headlineText = burnHeadline?.trim() || preset.headline;
   const gain =
     freqGainDb ??
     Math.round((preset.freqGainDb + eqBoost * 0.05) * 10) / 10;
@@ -70,7 +74,7 @@ export function ThumbnailPicker({
                 00:{tsLabel}s
               </p>
               <p className="absolute left-1/2 top-1/2 z-10 max-w-[90%] -translate-x-1/2 -translate-y-1/2 rotate-[-8deg] rounded-lg bg-black/75 px-2 py-1.5 text-center text-xs font-black uppercase tracking-tight text-yellow-300 shadow-[0_0_30px_rgba(250,204,21,0.35)]">
-                {preset.headline}
+                {headlineText}
               </p>
             </>
           )}

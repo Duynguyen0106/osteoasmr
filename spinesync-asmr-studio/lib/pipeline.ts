@@ -17,14 +17,14 @@ export const PIPELINE_STAGES: PipelineStage[] = [
     logMessage: "9:16 render · 1080×1920 H.264 · micro-zoom @ peak",
   },
   {
-    id: "thumbnail",
-    label: "High-CTR Thumbnail Extraction",
-    logMessage: "Branded 9:16 peak thumbnail · contrast + headline (server export)",
-  },
-  {
     id: "gpt",
     label: "GPT-4o Copy & Hashtags",
     logMessage: "GPT-4o · IG/TikTok/Shorts variants · 12 hashtag clusters",
+  },
+  {
+    id: "thumbnail",
+    label: "High-CTR Thumbnail Extraction",
+    logMessage: "Branded 9:16 peak thumbnail · GPT headline burn-in (server export)",
   },
   {
     id: "dispatch",

@@ -242,13 +242,18 @@ export function StudioDashboard({
         ? "upload (ffmpeg)"
         : undefined;
 
+  const thumbBurnHeadline =
+    jobResult?.copy?.headline?.trim() ||
+    serverCopy?.headline?.trim() ||
+    preset.headline;
+
   const incrementalPreview = useIncrementalPreview({
     assetId,
     enabled: isServerPipeline,
     sourceDurationSec,
     reelEdit,
     autoPeakZoom: toggles.autoPeakZoom,
-    headline: preset.headline,
+    headline: thumbBurnHeadline,
     onLog: appendLog,
   });
 
@@ -705,6 +710,7 @@ export function StudioDashboard({
                 thumbSource={thumbSource}
                 thumbTimeSec={reelEdit?.thumbTimeSec ?? null}
                 serverPipeline={isServerPipeline}
+                burnHeadline={thumbBurnHeadline}
               />
             </div>
             <CopywriterTabs

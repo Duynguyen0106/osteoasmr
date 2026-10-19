@@ -42,6 +42,7 @@ export async function POST(
     jobId: id,
     caption,
     publish: parsed.data,
+    copy,
   });
 
   const { mode, platforms } = parsed.data;

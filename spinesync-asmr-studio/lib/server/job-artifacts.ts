@@ -73,11 +73,20 @@ export async function publishReelUrlForJob(jobId: string): Promise<string | null
   if (storage.driver === "s3") {
     return storage.getReadableUrl(key);
   }
-  return absoluteSignedReel(jobId);
+  return absoluteSignedMedia(jobId, "reel.mp4");
 }
 
-async function absoluteSignedReel(jobId: string) {
+export async function publishThumbUrlForJob(jobId: string): Promise<string | null> {
+  const storage = getStorage();
+  const key = jobArtifactKey(jobId, "thumb.jpg");
+  if (storage.driver === "s3") {
+    return storage.getReadableUrl(key);
+  }
+  return absoluteSignedMedia(jobId, "thumb.jpg");
+}
+
+async function absoluteSignedMedia(jobId: string, fileName: string) {
   const base = appBaseUrl();
-  const path = signedMediaPath(`jobs/${jobId}/reel.mp4`, 86400);
+  const path = signedMediaPath(`jobs/${jobId}/${fileName}`, 86400);
   return `${base.replace(/\/$/, "")}${path}`;
 }
