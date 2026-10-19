@@ -3,8 +3,7 @@
 import { useCallback, useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { PipelineBanner } from "@/components/layout/PipelineBanner";
-import { Dropzone } from "@/components/ingestion/Dropzone";
-import { SamplePresets } from "@/components/ingestion/SamplePresets";
+import { IngestionPanel } from "@/components/ingestion/IngestionPanel";
 import { FocusSelector } from "@/components/controls/FocusSelector";
 import { ProcessingControls } from "@/components/controls/ProcessingControls";
 import { RunPipelineButton } from "@/components/pipeline/RunPipelineButton";
@@ -14,8 +13,9 @@ import { PeakSoundAnalytics } from "@/components/analytics/PeakSoundAnalytics";
 import { ThumbnailPicker } from "@/components/thumbnail/ThumbnailPicker";
 import { CopywriterTabs } from "@/components/copywriter/CopywriterTabs";
 import { SocialDispatchPanel } from "@/components/social/SocialDispatchPanel";
+import { useMediaObjectUrl } from "@/hooks/useMediaObjectUrl";
 import { usePipeline } from "@/hooks/usePipeline";
-import { getPresetById } from "@/lib/samples";
+import { getActivePreset, getPresetById } from "@/lib/samples";
 import type { FocusCategory, ProcessingToggles } from "@/lib/types";
 
 export function StudioDashboard() {
@@ -23,6 +23,7 @@ export function StudioDashboard() {
     usePipeline();
 
   const [file, setFile] = useState<File | null>(null);
+  const videoUrl = useMediaObjectUrl(file);
   const [presetId, setPresetId] = useState<string | null>("neck-crack");
   const [focus, setFocus] = useState<FocusCategory>("neck");
   const [eqBoost, setEqBoost] = useState(65);
@@ -32,7 +33,7 @@ export function StudioDashboard() {
     tiktokSubs: true,
   });
 
-  const preset = getPresetById(presetId);
+  const preset = getActivePreset(presetId, focus);
 
   const handleFileSelect = useCallback(
     (f: File | null) => {
@@ -56,6 +57,20 @@ export function StudioDashboard() {
     [appendLog],
   );
 
+  const handleFocusChange = useCallback(
+    (next: FocusCategory) => {
+      setFocus(next);
+      if (presetId) {
+        const current = getPresetById(presetId);
+        if (current.focus !== next) {
+          setPresetId(null);
+          appendLog(`Focus → ${next} · adaptive ASMR profile applied`);
+        }
+      }
+    },
+    [appendLog, presetId],
+  );
+
   const handleToggle = useCallback(
     (key: keyof ProcessingToggles, value: boolean) => {
       setToggles((t) => ({ ...t, [key]: value }));
@@ -66,7 +81,9 @@ export function StudioDashboard() {
   const handleSocialDispatch = useCallback(
     (action: "immediate" | "queue") => {
       if (action === "immediate") {
-        appendLog("Ayrshare · Post Immediately → IG, TikTok, YT Shorts, FB Reels");
+        appendLog(
+          "Ayrshare · Post Immediately → IG, TikTok, YT Shorts, FB Reels",
+        );
       } else {
         appendLog("Ayrshare · Queued for peak hour (18:00 local) · 4 channels");
       }
@@ -95,13 +112,14 @@ export function StudioDashboard() {
 
         <div className="grid gap-6 lg:grid-cols-12">
           <div className="space-y-4 lg:col-span-5">
-            <Dropzone file={file} onFileSelect={handleFileSelect} />
-            <SamplePresets
+            <IngestionPanel
+              file={file}
               activePresetId={presetId}
-              onSelect={handlePresetSelect}
+              onFileSelect={handleFileSelect}
+              onPresetSelect={handlePresetSelect}
             />
-            <div className="glass-panel space-y-4 rounded-2xl p-4">
-              <FocusSelector value={focus} onChange={setFocus} />
+            <div className="glass-panel rounded-2xl p-4">
+              <FocusSelector value={focus} onChange={handleFocusChange} />
             </div>
             <ProcessingControls
               eqBoost={eqBoost}
@@ -122,15 +140,18 @@ export function StudioDashboard() {
 
           <div className="space-y-4 lg:col-span-7">
             <VerticalReelPlayer
+              key={`${videoUrl ?? "sample"}-${preset.id}`}
               preset={preset}
               eqBoost={eqBoost}
               tiktokSubs={toggles.tiktokSubs}
+              autoPeakZoom={toggles.autoPeakZoom}
+              videoUrl={videoUrl}
             />
             <div className="grid gap-4 md:grid-cols-2">
               <PeakSoundAnalytics preset={preset} eqBoost={eqBoost} />
               <ThumbnailPicker preset={preset} eqBoost={eqBoost} />
             </div>
-            <CopywriterTabs presetId={presetId} eqBoost={eqBoost} />
+            <CopywriterTabs preset={preset} eqBoost={eqBoost} />
           </div>
         </div>
       </main>

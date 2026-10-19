@@ -6,12 +6,11 @@ import {
   DEFAULT_HASHTAGS,
   buildInstagramCopy,
   buildYoutubeCopy,
-  getPresetById,
 } from "@/lib/samples";
-import type { CopyTab } from "@/lib/types";
+import type { CopyTab, SamplePreset } from "@/lib/types";
 
 interface CopywriterTabsProps {
-  presetId: string | null;
+  preset: SamplePreset;
   eqBoost: number;
 }
 
@@ -21,10 +20,9 @@ const TABS: { id: CopyTab; label: string }[] = [
   { id: "hashtags", label: "Hashtags" },
 ];
 
-export function CopywriterTabs({ presetId, eqBoost }: CopywriterTabsProps) {
+export function CopywriterTabs({ preset, eqBoost }: CopywriterTabsProps) {
   const [tab, setTab] = useState<CopyTab>("instagram");
   const [copied, setCopied] = useState(false);
-  const preset = getPresetById(presetId);
 
   const copyText =
     tab === "instagram"

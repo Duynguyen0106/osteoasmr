@@ -1,17 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { barHeight } from "@/lib/waveform";
 
 const BAR_COUNT = 48;
-const MOCK_DURATION_SEC = 12;
 
-export function useWaveformAnimation(isPlaying: boolean, eqBoost: number) {
+export function useWaveformCanvas(playbackTimeSec: number, eqBoost: number) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rafRef = useRef<number | null>(null);
-  const startRef = useRef<number>(0);
-  const pausedAtRef = useRef(0);
-  const [playbackTimeSec, setPlaybackTimeSec] = useState(0);
 
   const draw = useCallback(
     (timeSec: number) => {
@@ -23,6 +18,8 @@ export function useWaveformAnimation(isPlaying: boolean, eqBoost: number) {
       const dpr = window.devicePixelRatio || 1;
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
+      if (w === 0 || h === 0) return;
+
       if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
         canvas.width = w * dpr;
         canvas.height = h * dpr;
@@ -42,13 +39,8 @@ export function useWaveformAnimation(isPlaying: boolean, eqBoost: number) {
 
         const nearPeak = Math.abs(timeSec - 4.2) <= 0.35;
         ctx.fillStyle = nearPeak ? "#22d3ee" : "#06b6d4";
-        if (nearPeak) {
-          ctx.shadowColor = "#a855f7";
-          ctx.shadowBlur = 12;
-        } else {
-          ctx.shadowBlur = 0;
-        }
-
+        ctx.shadowColor = nearPeak ? "#a855f7" : "transparent";
+        ctx.shadowBlur = nearPeak ? 12 : 0;
         ctx.fillRect(x, y, barW - gap, barH);
       }
       ctx.shadowBlur = 0;
@@ -57,35 +49,17 @@ export function useWaveformAnimation(isPlaying: boolean, eqBoost: number) {
   );
 
   useEffect(() => {
-    if (!isPlaying) {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      draw(pausedAtRef.current);
-      return;
-    }
-
-    startRef.current = performance.now() - pausedAtRef.current * 1000;
-
-    const tick = (now: number) => {
-      let t = (now - startRef.current) / 1000;
-      if (t >= MOCK_DURATION_SEC) {
-        t = 0;
-        startRef.current = now;
-      }
-      pausedAtRef.current = t;
-      setPlaybackTimeSec(t);
-      draw(t);
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [isPlaying, draw]);
+    draw(playbackTimeSec);
+  }, [playbackTimeSec, draw]);
 
   useEffect(() => {
-    draw(pausedAtRef.current);
-  }, [eqBoost, draw]);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-  return { canvasRef, playbackTimeSec };
+    const observer = new ResizeObserver(() => draw(playbackTimeSec));
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [draw, playbackTimeSec]);
+
+  return canvasRef;
 }

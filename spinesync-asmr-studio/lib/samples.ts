@@ -1,4 +1,4 @@
-import type { SamplePreset } from "./types";
+import type { FocusCategory, SamplePreset } from "./types";
 
 export const SAMPLE_PRESETS: SamplePreset[] = [
   {
@@ -30,6 +30,20 @@ export const SAMPLE_PRESETS: SamplePreset[] = [
     freqKhz: 4.2,
   },
   {
+    id: "thoracic-rib",
+    label: "Thoracic Rib",
+    focus: "thoracic",
+    headline: "RIB CAGE RELEASE 💫",
+    subtitles: [
+      "WAIT FOR THAT RIB POP...",
+      "THORACIC MOBILITY ASMR...",
+      "DEEP BREATH + CRACK...",
+    ],
+    peakDb: -1.5,
+    freqGainDb: 6.1,
+    freqKhz: 3.6,
+  },
+  {
     id: "shoulder-adj",
     label: "Shoulder Adjustment",
     focus: "shoulder-hip",
@@ -49,8 +63,16 @@ export const DEFAULT_HASHTAGS =
   "#Osteopath #ASMR #NeckCrack #SpineAdjustment #BackPainRelief";
 
 export function getPresetById(id: string | null): SamplePreset {
+  return SAMPLE_PRESETS.find((p) => p.id === id) ?? SAMPLE_PRESETS[0];
+}
+
+export function getActivePreset(
+  presetId: string | null,
+  focus: FocusCategory,
+): SamplePreset {
+  if (presetId) return getPresetById(presetId);
   return (
-    SAMPLE_PRESETS.find((p) => p.id === id) ?? SAMPLE_PRESETS[0]
+    SAMPLE_PRESETS.find((p) => p.focus === focus) ?? SAMPLE_PRESETS[0]
   );
 }
 
