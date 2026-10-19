@@ -5,7 +5,11 @@ import { barHeight } from "@/lib/waveform";
 
 const BAR_COUNT = 48;
 
-export function useWaveformCanvas(playbackTimeSec: number, eqBoost: number) {
+export function useWaveformCanvas(
+  playbackTimeSec: number,
+  eqBoost: number,
+  sfxCrack: boolean,
+) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const draw = useCallback(
@@ -32,7 +36,7 @@ export function useWaveformCanvas(playbackTimeSec: number, eqBoost: number) {
       const gap = 2;
 
       for (let i = 0; i < BAR_COUNT; i++) {
-        const norm = barHeight(i, BAR_COUNT, timeSec, eqBoost);
+        const norm = barHeight(i, BAR_COUNT, timeSec, eqBoost, sfxCrack);
         const barH = norm * h * 0.9;
         const x = i * barW + gap / 2;
         const y = h - barH;
@@ -45,7 +49,7 @@ export function useWaveformCanvas(playbackTimeSec: number, eqBoost: number) {
       }
       ctx.shadowBlur = 0;
     },
-    [eqBoost],
+    [eqBoost, sfxCrack],
   );
 
   useEffect(() => {

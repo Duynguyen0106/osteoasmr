@@ -156,6 +156,7 @@ export function StudioDashboard() {
               eqBoost={eqBoost}
               tiktokSubs={toggles.tiktokSubs}
               autoPeakZoom={toggles.autoPeakZoom}
+              sfxCrack={toggles.sfxCrack}
               videoUrl={videoUrl}
             />
             <div className="grid gap-4 md:grid-cols-2">

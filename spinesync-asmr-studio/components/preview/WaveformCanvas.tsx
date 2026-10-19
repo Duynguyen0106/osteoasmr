@@ -5,13 +5,15 @@ import { useWaveformCanvas } from "@/hooks/useWaveformAnimation";
 interface WaveformCanvasProps {
   playbackTimeSec: number;
   eqBoost: number;
+  sfxCrack: boolean;
 }
 
 export function WaveformCanvas({
   playbackTimeSec,
   eqBoost,
+  sfxCrack,
 }: WaveformCanvasProps) {
-  const canvasRef = useWaveformCanvas(playbackTimeSec, eqBoost);
+  const canvasRef = useWaveformCanvas(playbackTimeSec, eqBoost, sfxCrack);
 
   return (
     <canvas

@@ -14,6 +14,7 @@ interface VerticalReelPlayerProps {
   eqBoost: number;
   tiktokSubs: boolean;
   autoPeakZoom: boolean;
+  sfxCrack: boolean;
   videoUrl: string | null;
 }
 
@@ -22,6 +23,7 @@ export function VerticalReelPlayer({
   eqBoost,
   tiktokSubs,
   autoPeakZoom,
+  sfxCrack,
   videoUrl,
 }: VerticalReelPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -125,9 +127,19 @@ export function VerticalReelPlayer({
             </span>
           </div>
 
+          {sfxCrack && (
+            <span className="absolute right-2 top-14 z-20 rounded bg-amber-500/20 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-200 ring-1 ring-amber-400/30">
+              SFX Crack Layer
+            </span>
+          )}
+
           <SubtitleOverlay text={subtitle} enabled={tiktokSubs} />
 
-          <WaveformCanvas playbackTimeSec={playbackTimeSec} eqBoost={eqBoost} />
+          <WaveformCanvas
+            playbackTimeSec={playbackTimeSec}
+            eqBoost={eqBoost}
+            sfxCrack={sfxCrack}
+          />
 
           <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/90 to-transparent p-3 pt-8 text-center text-[10px] text-slate-200">
             📍 SpineSync Clinic | Book Link in Bio

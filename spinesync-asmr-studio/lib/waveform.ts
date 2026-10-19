@@ -10,15 +10,21 @@ export function barHeight(
   barCount: number,
   timeSec: number,
   eqBoost: number,
+  sfxCrack = false,
 ): number {
   const phase = timeSec * 8 + index * 0.35;
   const base = 0.25 + Math.abs(Math.sin(phase)) * 0.35;
   const noise = Math.abs(Math.sin(index * 1.7 + timeSec * 3)) * 0.2;
   let h = base + noise;
 
+  if (sfxCrack) {
+    h += Math.abs(Math.sin(index * 2.8 + timeSec * 14)) * 0.12;
+  }
+
   if (isNearPeak(timeSec)) {
     const peakBoost = 1 + eqBoost / 100;
     h *= 1.6 * peakBoost;
+    if (sfxCrack) h *= 1.15;
   }
 
   return Math.min(1, h);
