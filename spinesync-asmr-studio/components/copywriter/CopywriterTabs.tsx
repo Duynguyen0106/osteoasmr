@@ -12,6 +12,7 @@ import type { CopyTab, SamplePreset } from "@/lib/types";
 interface CopywriterTabsProps {
   preset: SamplePreset;
   eqBoost: number;
+  copyRevision: number;
 }
 
 const TABS: { id: CopyTab; label: string }[] = [
@@ -20,16 +21,25 @@ const TABS: { id: CopyTab; label: string }[] = [
   { id: "hashtags", label: "Hashtags" },
 ];
 
-export function CopywriterTabs({ preset, eqBoost }: CopywriterTabsProps) {
+export function CopywriterTabs({
+  preset,
+  eqBoost,
+  copyRevision,
+}: CopywriterTabsProps) {
   const [tab, setTab] = useState<CopyTab>("instagram");
   const [copied, setCopied] = useState(false);
 
+  const generatedSuffix =
+    copyRevision > 0
+      ? `\n\n— GPT-4o run #${copyRevision} · optimized for ${tab === "youtube" ? "Shorts" : "Reels"}`
+      : "";
+
   const copyText =
-    tab === "instagram"
+    (tab === "instagram"
       ? buildInstagramCopy(preset, eqBoost)
       : tab === "youtube"
         ? buildYoutubeCopy(preset)
-        : DEFAULT_HASHTAGS;
+        : DEFAULT_HASHTAGS) + generatedSuffix;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(copyText);
@@ -39,7 +49,14 @@ export function CopywriterTabs({ preset, eqBoost }: CopywriterTabsProps) {
 
   return (
     <div className="glass-panel rounded-2xl p-4">
-      <h3 className="mb-3 text-sm font-semibold text-white">GPT-4o Copywriter</h3>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <h3 className="text-sm font-semibold text-white">GPT-4o Copywriter</h3>
+        {copyRevision > 0 && (
+          <span className="rounded-full bg-purple-500/20 px-2 py-0.5 text-[10px] font-medium text-purple-200 ring-1 ring-purple-400/30">
+            Generated · run #{copyRevision}
+          </span>
+        )}
+      </div>
       <div className="mb-3 flex flex-wrap gap-1 border-b border-slate-700/60 pb-2">
         {TABS.map((t) => (
           <button

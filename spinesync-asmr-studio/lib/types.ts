@@ -47,3 +47,10 @@ export interface PipelineState {
   currentStageId: PipelineStageId | null;
   stages: Record<PipelineStageId, StageStatus>;
 }
+
+export interface PipelineRunContext {
+  eqBoost: number;
+  toggles: ProcessingToggles;
+  focus: FocusCategory;
+  sourceLabel: string;
+}

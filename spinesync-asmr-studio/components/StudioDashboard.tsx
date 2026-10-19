@@ -19,8 +19,14 @@ import { getActivePreset, getPresetById } from "@/lib/samples";
 import type { FocusCategory, ProcessingToggles } from "@/lib/types";
 
 export function StudioDashboard() {
-  const { pipeline, logs, pipelineComplete, appendLog, runFullPipeline } =
-    usePipeline();
+  const {
+    pipeline,
+    logs,
+    pipelineComplete,
+    copyRevision,
+    appendLog,
+    runFullPipeline,
+  } = usePipeline();
 
   const [file, setFile] = useState<File | null>(null);
   const videoUrl = useMediaObjectUrl(file);
@@ -103,6 +109,15 @@ export function StudioDashboard() {
   // Adaptive focus profile counts as a valid source when no preset/file is selected.
   const canRunPipeline = Boolean(file || presetId || focus);
 
+  const handleRunPipeline = useCallback(() => {
+    runFullPipeline({
+      eqBoost,
+      toggles,
+      focus,
+      sourceLabel: file?.name ?? preset.label,
+    });
+  }, [runFullPipeline, eqBoost, toggles, focus, file, preset.label]);
+
   return (
     <div className="relative min-h-screen pb-12">
       <div
@@ -141,7 +156,7 @@ export function StudioDashboard() {
             <RunPipelineButton
               running={pipeline.running}
               disabled={!canRunPipeline}
-              onRun={runFullPipeline}
+              onRun={handleRunPipeline}
             />
             <SocialDispatchPanel
               onDispatch={handleSocialDispatch}
@@ -163,7 +178,11 @@ export function StudioDashboard() {
               <PeakSoundAnalytics preset={preset} eqBoost={eqBoost} />
               <ThumbnailPicker preset={preset} eqBoost={eqBoost} />
             </div>
-            <CopywriterTabs preset={preset} eqBoost={eqBoost} />
+            <CopywriterTabs
+              preset={preset}
+              eqBoost={eqBoost}
+              copyRevision={copyRevision}
+            />
           </div>
         </div>
       </main>
