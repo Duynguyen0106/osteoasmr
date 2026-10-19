@@ -7,6 +7,8 @@ export interface StudioHealth {
   ffmpeg: boolean;
   hosting?: {
     vercel?: boolean;
+    serverless?: boolean;
+    maxFunctionDurationSec?: number | null;
     ephemeralData?: boolean;
     durableStorage?: boolean;
     pipelineReady?: boolean;
@@ -19,8 +21,8 @@ export interface StudioHealth {
     appBaseUrl?: string;
   };
   auth?: { requireApiKey?: boolean; apiKeyConfigured?: boolean };
-  queue?: { executor?: string; backend?: string };
-  remotion?: { mode?: string; requested?: string };
+  queue?: { executor?: string; backend?: string; redisLive?: boolean };
+  remotion?: { mode?: string; requested?: string; lambdaDeployed?: boolean };
 }
 
 export function useStudioHealth(enabled: boolean) {

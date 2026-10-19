@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:unit": "tsx --test --test-concurrency=1 tests/access-config.test.ts tests/asmr-export.test.ts tests/asmr-profiles.test.ts tests/client-audio-peaks.test.ts tests/crack-asset-path.test.ts tests/crack-samples.test.ts tests/envelope.test.ts tests/ffmpeg-bin.test.ts tests/media-token.test.ts tests/startup.test.ts",
+    "test:unit": "tsx --test --test-concurrency=1 tests/access-config.test.ts tests/asmr-export.test.ts tests/asmr-profiles.test.ts tests/client-audio-peaks.test.ts tests/crack-asset-path.test.ts tests/crack-samples.test.ts tests/envelope.test.ts tests/ffmpeg-bin.test.ts tests/hosting-hints.test.ts tests/media-token.test.ts tests/startup.test.ts",
     "test:integration": "tsx --test tests/api-integration.test.ts",
     "test": "npm run test:unit && npm run test:integration",
     "worker:pipeline": "tsx scripts/pipeline-worker.ts",

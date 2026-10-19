@@ -5,15 +5,18 @@ import { Loader2, Zap } from "lucide-react";
 interface RunPipelineButtonProps {
   running: boolean;
   disabled?: boolean;
+  blockReason?: string;
   onRun: () => void;
 }
 
 export function RunPipelineButton({
   running,
   disabled,
+  blockReason,
   onRun,
 }: RunPipelineButtonProps) {
   return (
+    <div className="space-y-1">
     <button
       type="button"
       disabled={running || disabled}
@@ -32,5 +35,11 @@ export function RunPipelineButton({
         </>
       )}
     </button>
+    {blockReason && disabled && !running && (
+      <p className="text-center text-[10px] text-amber-300/90" role="status">
+        {blockReason}
+      </p>
+    )}
+    </div>
   );
 }

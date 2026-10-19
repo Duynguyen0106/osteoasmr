@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { ApiKeyPanel } from "@/components/layout/ApiKeyPanel";
-import { S3StoragePanel } from "@/components/layout/S3StoragePanel";
+import { StudioOpsPanels } from "@/components/layout/StudioOpsPanels";
 import { AuthBootstrap } from "@/components/layout/AuthBootstrap";
 import { Header } from "@/components/layout/Header";
 import { StudioCapabilityBanner } from "@/components/layout/StudioCapabilityBanner";
@@ -219,6 +219,12 @@ export function StudioDashboard() {
     Boolean(file || assetId) &&
     studioHealth?.hosting?.pipelineReady === false;
 
+  const pipelineBlockReason = pipelineBlocked
+    ? studioHealth?.ffmpeg === false
+      ? "ffmpeg is not available on this host — check /api/health."
+      : "Durable storage required (configure S3 on ephemeral hosting)."
+    : undefined;
+
   const canRunPipeline =
     Boolean(file || presetId || focus) &&
     !uploading &&
@@ -379,10 +385,11 @@ export function StudioDashboard() {
               visible={isServerPipeline}
               requireApiKey={studioHealth?.auth?.requireApiKey ?? false}
             />
-            <S3StoragePanel health={studioHealth} />
+            <StudioOpsPanels health={studioHealth} />
             <RunPipelineButton
               running={pipeline.running || uploading}
               disabled={!canRunPipeline}
+              blockReason={pipelineBlockReason}
               onRun={handleRunPipeline}
             />
             <SocialDispatchPanel

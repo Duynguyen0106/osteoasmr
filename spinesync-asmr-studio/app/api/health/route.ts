@@ -20,6 +20,7 @@ import {
   storageDriverEnv,
 } from "@/lib/server/config";
 import { redisQueueEnabled } from "@/lib/server/redis-queue";
+import { parseMaxFunctionDurationSec } from "@/lib/server/hosting-hints";
 import { getStorage } from "@/lib/server/storage";
 
 export async function GET() {
@@ -45,6 +46,8 @@ export async function GET() {
     },
     hosting: {
       vercel: process.env.VERCEL === "1",
+      serverless: process.env.VERCEL === "1",
+      maxFunctionDurationSec: parseMaxFunctionDurationSec(),
       ephemeralData: ephemeral,
       durableStorage,
       pipelineReady,
@@ -60,6 +63,7 @@ export async function GET() {
     queue: {
       executor: jobExecutor(),
       backend: redisQueueEnabled() ? "redis" : jobQueueBackend(),
+      redisLive: redisQueueEnabled(),
     },
     remotion: {
       mode: remotionRenderMode(),
