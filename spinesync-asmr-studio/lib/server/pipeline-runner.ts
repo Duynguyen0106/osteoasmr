@@ -6,6 +6,7 @@ import type { PipelineStageId } from "@/lib/types";
 import type { CaptionSegment } from "./captions";
 import { fallbackCaptionSegments } from "./captions";
 import { presetHeadline, presetPeakDefaults } from "./copy";
+import { renderEqAudio } from "./audio-eq";
 import {
   detectPeakTimeSec,
   fileExists,
@@ -96,11 +97,13 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
           peak.peakDb = -1.2;
           peak.freqGainDb = defaults.freqGainDb + gainDb * 0.4;
 
-          const eqFilter = `equalizer=f=3500:t=h:width=2000:g=${gainDb}`;
-          const af = config.toggles.sfxCrack
-            ? `${eqFilter},highpass=f=2000,acompressor`
-            : eqFilter;
-          await runFfmpeg(["-i", sourcePath, "-af", af, eqAudioPath]);
+          await renderEqAudio({
+            sourcePath,
+            outputPath: eqAudioPath,
+            gainDb,
+            sfxCrack: config.toggles.sfxCrack,
+            peakTimeSec: peak.timeSec,
+          });
         }
         await fs.promises.writeFile(
           path.join(dir, "peak.json"),

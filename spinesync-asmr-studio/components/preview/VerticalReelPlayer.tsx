@@ -3,6 +3,7 @@
 import { Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CaptionSegment } from "@/lib/contract/job";
+import { ReelScrubber } from "./ReelScrubber";
 import { SubtitleOverlay } from "./SubtitleOverlay";
 import { WaveformCanvas } from "./WaveformCanvas";
 import type { SamplePreset } from "@/lib/types";
@@ -53,7 +54,14 @@ export function VerticalReelPlayer({
     mediaError && mediaError.url === videoUrl ? mediaError.message : null;
   const [displayTimeSec, setDisplayTimeSec] = useState(0);
   const [soundOn, setSoundOn] = useState(true);
+  const [videoDurationSec, setVideoDurationSec] = useState(0);
   const hasKaraoke = Boolean(captionSegments?.length);
+  const durationSec =
+    videoUrl && videoDurationSec > 0
+      ? videoDurationSec
+      : audioDurationSec > 0
+        ? audioDurationSec
+        : MOCK_DURATION_SEC;
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
@@ -98,7 +106,7 @@ export function VerticalReelPlayer({
       }
       mockOffsetRef.current = t;
       timeRef.current = t;
-      if (hasKaraoke) setDisplayTimeSec(t);
+      setDisplayTimeSec(t);
       applyPeakZoom(t);
       raf = requestAnimationFrame(tick);
     };
@@ -171,6 +179,29 @@ export function VerticalReelPlayer({
     return () => window.clearInterval(id);
   }, [videoUrl, onRefreshMedia]);
 
+  const handleSeek = useCallback(
+    (timeSec: number) => {
+      const clamped = Math.max(0, Math.min(timeSec, durationSec));
+      timeRef.current = clamped;
+      setDisplayTimeSec(clamped);
+      applyPeakZoom(clamped);
+      const video = videoRef.current;
+      if (videoUrl && video) {
+        video.currentTime = clamped;
+        return;
+      }
+      mockOffsetRef.current = clamped;
+    },
+    [durationSec, videoUrl, applyPeakZoom],
+  );
+
+  const handleLoadedMetadata = useCallback(() => {
+    const video = videoRef.current;
+    if (video && Number.isFinite(video.duration)) {
+      setVideoDurationSec(video.duration);
+    }
+  }, []);
+
   const handleVideoError = useCallback(() => {
     if (videoUrl) {
       setMediaError({
@@ -202,6 +233,7 @@ export function VerticalReelPlayer({
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
               onError={handleVideoError}
+              onLoadedMetadata={handleLoadedMetadata}
             />
           ) : (
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(6,182,212,0.12),transparent_55%)]" />
@@ -279,6 +311,12 @@ export function VerticalReelPlayer({
             )}
           </button>
         </div>
+        <ReelScrubber
+          durationSec={durationSec}
+          currentTimeSec={displayTimeSec}
+          peakTimeSec={peakTimeSec}
+          onSeek={handleSeek}
+        />
         {playError && (
           <p className="mt-2 text-center text-xs text-amber-400" role="alert">
             {playError}

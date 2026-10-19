@@ -39,6 +39,7 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
   const [jobResult, setJobResult] = useState<JobResult | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [serverCopy, setServerCopy] = useState<JobCopyResult | null>(null);
+  const [historyTick, setHistoryTick] = useState(0);
   const runningRef = useRef(false);
 
   const appendLog = useCallback((message: string) => {
@@ -95,6 +96,7 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
         setJobResult(data.result);
         setServerCopy(data.result.copy ?? null);
         setPipelineComplete(true);
+        setHistoryTick((t) => t + 1);
         setPipeline((prev) => ({
           ...prev,
           running: false,
@@ -188,21 +190,22 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
             setJobResult(result);
             setServerCopy(result.copy ?? null);
             setCopyRevision(revision);
-            setPipelineComplete(true);
-            setPipeline((prev) => ({
-              ...prev,
-              running: false,
-              progress: 100,
-              currentStageId: null,
-              stages: PIPELINE_STAGES.reduce(
-                (acc, s) => {
-                  acc[s.id as PipelineStageId] = "done";
-                  return acc;
-                },
-                { ...createInitialStageStatus() },
-              ),
-            }));
-            const reduceMotion = window.matchMedia(
+              setPipelineComplete(true);
+              setHistoryTick((t) => t + 1);
+              setPipeline((prev) => ({
+                ...prev,
+                running: false,
+                progress: 100,
+                currentStageId: null,
+                stages: PIPELINE_STAGES.reduce(
+                  (acc, s) => {
+                    acc[s.id as PipelineStageId] = "done";
+                    return acc;
+                  },
+                  { ...createInitialStageStatus() },
+                ),
+              }));
+              const reduceMotion = window.matchMedia(
               "(prefers-reduced-motion: reduce)",
             ).matches;
             if (!reduceMotion) {
@@ -285,6 +288,40 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
     [jobId, appendLog],
   );
 
+  const loadJob = useCallback(
+    async (id: string) => {
+      const res = await spinesyncFetch(`/api/jobs/${id}`);
+      if (!res.ok) {
+        appendLog(`Could not open job ${id.slice(0, 8)}…`);
+        return;
+      }
+      const data = (await res.json()) as {
+        id: string;
+        status: string;
+        progress: number;
+        currentStageId: string | null;
+        stages: Record<PipelineStageId, "idle" | "running" | "done">;
+        logs: LogEntry[];
+        copyRevision: number;
+        result: JobResult | null;
+      };
+      setJobId(data.id);
+      setLogs(trimLogs(data.logs));
+      setCopyRevision(data.copyRevision);
+      setJobResult(data.result);
+      setServerCopy(data.result?.copy ?? null);
+      setPipelineComplete(data.status === "completed");
+      setPipeline({
+        running: data.status === "running" || data.status === "queued",
+        progress: data.progress,
+        currentStageId: data.currentStageId as PipelineStageId | null,
+        stages: data.stages,
+      });
+      appendLog(`Opened job ${id.slice(0, 8)}… · ${data.status}`);
+    },
+    [appendLog],
+  );
+
   const refreshJobMedia = useCallback(async () => {
     if (!jobId) return;
     const res = await spinesyncFetch(`/api/jobs/${jobId}`);
@@ -308,5 +345,7 @@ export function usePipelineServer(options: UsePipelineServerOptions) {
     jobId,
     publish,
     refreshJobMedia,
+    loadJob,
+    historyTick,
   };
 }

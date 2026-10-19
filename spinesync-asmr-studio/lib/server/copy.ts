@@ -1,25 +1,13 @@
-import {
-  DEFAULT_HASHTAGS,
-  buildInstagramCopy,
-  buildYoutubeCopy,
-  getActivePreset,
-  getPresetById,
-} from "@/lib/samples";
-import type { CreateJobBody, JobCopyResult } from "@/lib/contract/job";
+import { getActivePreset, getPresetById } from "@/lib/samples";
+import { buildJobCopy as buildJobCopyShared } from "@/lib/build-job-copy";
+import type { CreateJobBody } from "@/lib/contract/job";
 
 export function buildJobCopy(
   config: CreateJobBody,
   revision: number,
   headline: string,
-): JobCopyResult {
-  const preset = getActivePreset(config.presetId ?? null, config.focus);
-  return {
-    instagram: buildInstagramCopy(preset, config.eqBoost),
-    youtube: buildYoutubeCopy(preset),
-    hashtags: DEFAULT_HASHTAGS,
-    headline: headline || preset.headline,
-    revision,
-  };
+) {
+  return buildJobCopyShared(config, revision, headline);
 }
 
 export function presetHeadline(presetId: string | null | undefined, focus: CreateJobBody["focus"]) {

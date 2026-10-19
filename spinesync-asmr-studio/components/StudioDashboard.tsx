@@ -23,6 +23,7 @@ import { PEAK_TIME_SEC } from "@/lib/waveform";
 import type { FocusCategory, ProcessingToggles } from "@/lib/types";
 
 import { JobExportsPanel } from "@/components/export/JobExportsPanel";
+import { JobHistoryPanel } from "@/components/jobs/JobHistoryPanel";
 import { useSourceAudioProfile } from "@/hooks/useSourceAudioProfile";
 import { spinesyncFetch } from "@/lib/api-client";
 import { uploadAssetSmart } from "@/lib/upload-client";
@@ -67,7 +68,9 @@ export function StudioDashboard() {
   } = active;
 
   const jobResult = isServerPipeline ? server.jobResult : null;
-  const serverCopy = isServerPipeline ? server.serverCopy : null;
+  const serverCopy = isServerPipeline
+    ? server.serverCopy
+    : mock.mockCopy;
   const refreshJobMedia = isServerPipeline
     ? server.refreshJobMedia
     : undefined;
@@ -208,6 +211,7 @@ export function StudioDashboard() {
       toggles,
       focus,
       sourceLabel: file?.name ?? preset.label,
+      presetId,
     });
   }, [
     eqBoost,
@@ -270,6 +274,13 @@ export function StudioDashboard() {
               onDispatch={handleSocialDispatch}
               pipelineComplete={pipelineComplete}
             />
+            {isServerPipeline && (
+              <JobHistoryPanel
+                activeJobId={server.jobId}
+                refreshKey={server.historyTick}
+                onOpenJob={(id) => void server.loadJob(id)}
+              />
+            )}
           </div>
 
           <div className="space-y-4 lg:col-span-7">

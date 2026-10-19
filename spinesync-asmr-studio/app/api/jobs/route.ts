@@ -6,9 +6,16 @@ import {
   unauthorized,
 } from "@/lib/server/access";
 import { jobExecutor } from "@/lib/server/config";
-import { createJobRecord } from "@/lib/server/job-service";
+import { createJobRecord, listRecentJobs } from "@/lib/server/job-service";
 import { enqueueJob } from "@/lib/server/pipeline-runner";
 import { enqueueRedisJob, redisQueueEnabled } from "@/lib/server/redis-queue";
+
+export async function GET(request: Request) {
+  const projectId = resolveProjectFromRequest(request);
+  if (!projectId) return unauthorized();
+  const jobs = listRecentJobs(projectId, 25);
+  return NextResponse.json({ jobs });
+}
 
 export async function POST(request: Request) {
   try {

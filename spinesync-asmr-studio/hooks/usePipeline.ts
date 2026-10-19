@@ -9,6 +9,8 @@ import {
   delay,
   formatLogTimestamp,
 } from "@/lib/pipeline";
+import { buildJobCopy } from "@/lib/build-job-copy";
+import type { JobCopyResult } from "@/lib/contract/job";
 import type {
   LogEntry,
   PipelineRunContext,
@@ -48,6 +50,7 @@ export function usePipeline() {
   ]);
   const [pipelineComplete, setPipelineComplete] = useState(false);
   const [copyRevision, setCopyRevision] = useState(0);
+  const [mockCopy, setMockCopy] = useState<JobCopyResult | null>(null);
 
   const appendLog = useCallback((message: string) => {
     setLogs((prev) => trimLogs([...prev, newLog(message)]));
@@ -59,6 +62,7 @@ export function usePipeline() {
 
       runningRef.current = true;
       setPipelineComplete(false);
+      setMockCopy(null);
       setPipeline({
         running: true,
         progress: 0,
@@ -96,7 +100,20 @@ export function usePipeline() {
           if (stageId === "eq" && ctx.toggles.sfxCrack) {
             appendLog(`${stage.logMessage} · synthesized crack layer merged`);
           } else if (stageId === "gpt") {
-            setCopyRevision((r) => r + 1);
+            setCopyRevision((r) => {
+              const next = r + 1;
+              setMockCopy(
+                buildJobCopy(
+                  {
+                    focus: ctx.focus,
+                    eqBoost: ctx.eqBoost,
+                    presetId: ctx.presetId ?? null,
+                  },
+                  next,
+                ),
+              );
+              return next;
+            });
             appendLog(`${stage.logMessage} · copywriter UI refreshed`);
           } else {
             appendLog(stage.logMessage);
@@ -135,6 +152,7 @@ export function usePipeline() {
     logs,
     pipelineComplete,
     copyRevision,
+    mockCopy,
     appendLog,
     runFullPipeline,
   };

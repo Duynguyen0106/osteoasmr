@@ -24,6 +24,7 @@ Copy `.env.example` to `.env.local` for server mode. Requires **ffmpeg** on `PAT
 | GET | `/api/health` | ffmpeg + storage status |
 | POST | `/api/assets/upload` | Multipart `file` → `{ assetId }` |
 | GET | `/api/assets/:id/analyze` | ffmpeg peak time + duration (server mode) |
+| GET | `/api/jobs` | List recent jobs for current project |
 | POST | `/api/jobs` | Create job (JSON body, see `lib/contract/job.ts`) |
 | GET | `/api/jobs/:id` | Status, stages, logs, result |
 | GET | `/api/jobs/:id/stream` | SSE log/stage/complete events |

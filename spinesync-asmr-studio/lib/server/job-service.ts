@@ -1,4 +1,5 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, or } from "drizzle-orm";
+import { getDefaultProjectId } from "./auth";
 import type { CreateJobBody, JobResult } from "@/lib/contract/job";
 import { formatLogTimestamp } from "@/lib/pipeline";
 import type { PipelineStageId } from "@/lib/types";
@@ -167,6 +168,43 @@ export function getJobLogs(jobId: string) {
     .where(eq(schema.jobLogs.jobId, jobId))
     .orderBy(asc(schema.jobLogs.createdAt))
     .all();
+}
+
+export function listRecentJobs(projectId: string, limit = 20) {
+  const db = getDb();
+  return db
+    .select({
+      id: schema.jobs.id,
+      status: schema.jobs.status,
+      progress: schema.jobs.progress,
+      createdAt: schema.jobs.createdAt,
+      sourceLabel: schema.jobs.configJson,
+    })
+    .from(schema.jobs)
+    .where(
+      projectId === getDefaultProjectId()
+        ? or(eq(schema.jobs.projectId, projectId), isNull(schema.jobs.projectId))
+        : eq(schema.jobs.projectId, projectId),
+    )
+    .orderBy(desc(schema.jobs.createdAt))
+    .limit(limit)
+    .all()
+    .map((row) => {
+      let label = "Job";
+      try {
+        const cfg = JSON.parse(row.sourceLabel) as { sourceLabel?: string };
+        label = cfg.sourceLabel ?? label;
+      } catch {
+        /* ignore */
+      }
+      return {
+        id: row.id,
+        status: row.status,
+        progress: row.progress,
+        createdAt: row.createdAt,
+        sourceLabel: label,
+      };
+    });
 }
 
 export function getAssetById(assetId: string) {
