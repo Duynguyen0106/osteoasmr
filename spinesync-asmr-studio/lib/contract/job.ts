@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { crackSampleIdSchema } from "@/lib/contract/crack-sample";
+import { reelEditSchema } from "@/lib/contract/reel-edit";
 
 export const focusCategorySchema = z.enum([
   "neck",
@@ -25,6 +26,7 @@ export const createJobBodySchema = z.object({
   bypassSculpt: z.boolean().default(false),
   crackSampleId: crackSampleIdSchema.default("syn-bright"),
   sourceLabel: z.string().min(1),
+  edit: reelEditSchema.optional(),
 });
 
 export const publishBodySchema = z.object({

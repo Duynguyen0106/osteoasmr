@@ -6,9 +6,10 @@ import {
   getAsmrProfile,
 } from "@/lib/asmr-profiles";
 import {
+  CRACK_SAMPLES,
+  decodeCrackSample,
   getCrackSample,
   previewCrackGain,
-  synthesizeCrackBuffer,
   type CrackSampleId,
 } from "@/lib/crack-samples";
 import { secondaryCrackDelaySec } from "@/lib/asmr-export";
@@ -119,6 +120,21 @@ export function useLiveAsmrAudio(
   ]);
 
   useEffect(() => {
+    const graph = graphRef.current;
+    if (!graph || !options.enabled || !options.videoUrl) return;
+    let cancelled = false;
+    for (const sample of CRACK_SAMPLES) {
+      if (graph.crackBuffers.has(sample.id)) continue;
+      void decodeCrackSample(graph.ctx, sample).then((buffer) => {
+        if (!cancelled) graph.crackBuffers.set(sample.id, buffer);
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [options.enabled, options.videoUrl]);
+
+  useEffect(() => {
     firedPrimaryRef.current = false;
     firedSecondaryRef.current = false;
     prevTimeRef.current = 0;
@@ -148,19 +164,28 @@ export function useLiveAsmrAudio(
 
     const playCrack = (sampleId: CrackSampleId, intensityScale = 1) => {
       const sample = getCrackSample(sampleId);
-      let buffer = graph.crackBuffers.get(sample.id);
-      if (!buffer) {
-        buffer = synthesizeCrackBuffer(graph.ctx, sample);
-        graph.crackBuffers.set(sample.id, buffer);
-      }
-      const src = graph.ctx.createBufferSource();
-      src.buffer = buffer;
-      const g = graph.ctx.createGain();
-      g.gain.value =
+      const gain =
         previewCrackGain(crackIntensity, focus, sample) * intensityScale;
-      src.connect(g);
-      g.connect(graph.ctx.destination);
-      src.start();
+
+      const startFromBuffer = (buffer: AudioBuffer) => {
+        const src = graph.ctx.createBufferSource();
+        src.buffer = buffer;
+        const g = graph.ctx.createGain();
+        g.gain.value = gain;
+        src.connect(g);
+        g.connect(graph.ctx.destination);
+        src.start();
+      };
+
+      const cached = graph.crackBuffers.get(sample.id);
+      if (cached) {
+        startFromBuffer(cached);
+        return;
+      }
+      void decodeCrackSample(graph.ctx, sample).then((buffer) => {
+        graph.crackBuffers.set(sample.id, buffer);
+        startFromBuffer(buffer);
+      });
     };
 
     let raf = 0;

@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { ApiKeyPanel } from "@/components/layout/ApiKeyPanel";
+import { StudioOpsPanels } from "@/components/layout/StudioOpsPanels";
 import { AuthBootstrap } from "@/components/layout/AuthBootstrap";
 import { Header } from "@/components/layout/Header";
+import { StudioCapabilityBanner } from "@/components/layout/StudioCapabilityBanner";
 import { PipelineBanner } from "@/components/layout/PipelineBanner";
 import { IngestionPanel } from "@/components/ingestion/IngestionPanel";
 import { FocusSelector } from "@/components/controls/FocusSelector";
@@ -31,6 +34,16 @@ import { JobHistoryPanel } from "@/components/jobs/JobHistoryPanel";
 import { useSourceAudioProfile } from "@/hooks/useSourceAudioProfile";
 import { spinesyncFetch } from "@/lib/api-client";
 import { uploadAssetSmart } from "@/lib/upload-client";
+import { useStudioHealth } from "@/hooks/useStudioHealth";
+import { ReelProEditor } from "@/components/editor/ReelProEditor";
+import {
+  StudioViewTabs,
+  type StudioView,
+} from "@/components/layout/StudioViewTabs";
+import type { ReelEditState } from "@/lib/contract/reel-edit";
+import { defaultReelEdit } from "@/lib/contract/reel-edit";
+import { hasMeaningfulEdit } from "@/lib/reel-edit/edit-diff";
+import { normalizeReelEdit } from "@/lib/reel-edit/normalize";
 
 export function StudioDashboard() {
   const [file, setFile] = useState<File | null>(null);
@@ -57,6 +70,10 @@ export function StudioDashboard() {
   const [previewBypass, setPreviewBypass] = useState(false);
   const [exportBypassSculpt, setExportBypassSculpt] = useState(false);
   const [crackSampleId, setCrackSampleId] = useState<CrackSampleId>("syn-bright");
+  const [studioView, setStudioView] = useState<StudioView>("pipeline");
+  const [reelEdit, setReelEdit] = useState<ReelEditState | null>(null);
+  const [editorSeekClipSec, setEditorSeekClipSec] = useState<number | null>(null);
+  const [videoSourceDurationSec, setVideoSourceDurationSec] = useState(0);
 
   const mock = usePipeline();
   const server = usePipelineServer({
@@ -70,6 +87,10 @@ export function StudioDashboard() {
       return null;
     },
   });
+
+  const { health: studioHealth, error: healthError } = useStudioHealth(
+    isServerPipeline,
+  );
 
   const active = isServerPipeline ? server : mock;
   const {
@@ -90,6 +111,13 @@ export function StudioDashboard() {
     : undefined;
 
   const preset = getActivePreset(presetId, focus);
+  const sourceDurationSec = Math.max(
+    sourceAudio.durationSec,
+    videoSourceDurationSec,
+    jobResult?.peak.timeSec ? jobResult.peak.timeSec * 2 : 0,
+    0.1,
+  ) || 12;
+
   const peakTimeSec =
     jobResult?.peak.timeSec ??
     serverPeakTimeSec ??
@@ -108,11 +136,15 @@ export function StudioDashboard() {
     return localVideoUrl;
   }, [jobResult, localVideoUrl]);
 
+  const editorEnabled = Boolean(file || previewVideoUrl);
+
   const handleFileSelect = useCallback(
     async (f: File | null) => {
       setFile(f);
       setAssetId(null);
       setServerPeakTimeSec(null);
+      setVideoSourceDurationSec(0);
+      setReelEdit(null);
       if (!f) {
         appendLog("Upload cleared · select a sample or drop new media");
         return;
@@ -206,8 +238,30 @@ export function StudioDashboard() {
     [appendLog, server],
   );
 
+  const pipelineBlocked =
+    isServerPipeline &&
+    Boolean(file || assetId) &&
+    studioHealth?.hosting?.pipelineReady === false;
+
+  const pipelineBlockReason = pipelineBlocked
+    ? studioHealth?.ffmpeg === false
+      ? "ffmpeg is not available on this host — check /api/health."
+      : "Durable storage required (configure S3 on ephemeral hosting)."
+    : undefined;
+
   const canRunPipeline =
-    Boolean(file || presetId || focus) && !uploading && !pipeline.running;
+    Boolean(file || presetId || focus) &&
+    !uploading &&
+    !pipeline.running &&
+    !pipelineBlocked;
+
+  const publishHint = !isServerPipeline
+    ? "Mock mode — dispatch logs only."
+    : !studioHealth?.integrations?.canPublishAyrshare
+      ? studioHealth?.integrations?.ayrshare
+        ? "Set APP_BASE_URL to your public HTTPS URL for live Ayrshare posts."
+        : "Add AYRSHARE_API_KEY + HTTPS APP_BASE_URL for live posts (stub logs otherwise)."
+      : undefined;
 
   const handleRunPipeline = useCallback(() => {
     if (isServerPipeline) {
@@ -221,6 +275,9 @@ export function StudioDashboard() {
         roomTone,
         bypassSculpt: exportBypassSculpt,
         crackSampleId,
+        edit:
+          reelEdit ??
+          normalizeReelEdit(defaultReelEdit(sourceDurationSec), sourceDurationSec),
       });
       return;
     }
@@ -234,6 +291,9 @@ export function StudioDashboard() {
       roomTone,
       bypassSculpt: exportBypassSculpt,
       crackSampleId,
+      edit:
+        reelEdit ??
+        normalizeReelEdit(defaultReelEdit(sourceDurationSec), sourceDurationSec),
     });
   }, [
     eqBoost,
@@ -248,6 +308,8 @@ export function StudioDashboard() {
     crackSampleId,
     runFullPipeline,
     server,
+    reelEdit,
+    sourceDurationSec,
   ]);
 
   const applyAsmrPreset = useCallback((next: AsmrStudioSettings) => {
@@ -296,12 +358,37 @@ export function StudioDashboard() {
         aria-hidden
       />
       <Header />
-      {isServerPipeline && (
-        <p className="relative mx-auto max-w-7xl px-4 pt-2 text-center text-[10px] uppercase tracking-widest text-emerald-400/90 sm:px-6">
+      <StudioViewTabs
+        view={studioView}
+        onChange={setStudioView}
+        editorEnabled={editorEnabled}
+      />
+      <StudioCapabilityBanner
+        health={studioHealth}
+        healthError={healthError}
+        mockEditPending={
+          !isServerPipeline && hasMeaningfulEdit(reelEdit, sourceDurationSec)
+        }
+      />
+      {isServerPipeline && studioHealth?.hosting?.pipelineReady && (
+        <p className="relative mx-auto max-w-7xl px-4 pt-1 text-center text-[10px] uppercase tracking-widest text-emerald-400/90 sm:px-6">
           Server pipeline · SQLite + ffmpeg · SSE logs
         </p>
       )}
       <main className="relative mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6">
+        {studioView === "editor" && editorEnabled && (
+          <ReelProEditor
+            key={`editor-${sourceDurationSec}-${jobResult?.captionSegments?.length ?? 0}`}
+            sourceDurationSec={sourceDurationSec}
+            peakTimeSec={peakTimeSec}
+            captionSegments={jobResult?.captionSegments}
+            audioEnvelope={
+              sourceAudio.envelope.length ? sourceAudio.envelope : null
+            }
+            onEditChange={setReelEdit}
+            onSeekPreview={(t) => setEditorSeekClipSec(t)}
+          />
+        )}
         <PipelineBanner
           progress={pipeline.progress}
           stages={pipeline.stages}
@@ -350,27 +437,46 @@ export function StudioDashboard() {
               settings={asmrSettings}
               onApply={applyAsmrPreset}
             />
+            <ApiKeyPanel
+              visible={isServerPipeline}
+              requireApiKey={studioHealth?.auth?.requireApiKey ?? false}
+            />
+            <StudioOpsPanels health={studioHealth} />
             <RunPipelineButton
               running={pipeline.running || uploading}
               disabled={!canRunPipeline}
+              blockReason={pipelineBlockReason}
               onRun={handleRunPipeline}
             />
             <SocialDispatchPanel
               onDispatch={handleSocialDispatch}
               pipelineComplete={pipelineComplete}
+              canPublishLive={
+                isServerPipeline &&
+                Boolean(studioHealth?.integrations?.canPublishAyrshare)
+              }
+              publishHint={publishHint}
             />
             {isServerPipeline && (
               <JobHistoryPanel
                 activeJobId={server.jobId}
                 refreshKey={server.historyTick}
-                onOpenJob={(id) => void server.loadJob(id)}
+                onOpenJob={(id) =>
+                  void server.loadJob(id, (edit) => {
+                    if (edit) {
+                      setReelEdit(edit);
+                      setStudioView("editor");
+                      appendLog("Restored reel edit from job config");
+                    }
+                  })
+                }
               />
             )}
           </div>
 
           <div className="space-y-4 lg:col-span-7">
             <VerticalReelPlayer
-              key={`${previewVideoUrl ?? "sample"}-${preset.id}-${peakTimeSec}-${liveAsmrPreview}-${previewBypass}`}
+              key={`${previewVideoUrl ?? "sample"}-${preset.id}-${peakTimeSec}-${liveAsmrPreview}-${previewBypass}-${studioView}`}
               preset={preset}
               eqBoost={eqBoost}
               tiktokSubs={toggles.tiktokSubs}
@@ -392,6 +498,9 @@ export function StudioDashboard() {
               previewBypass={previewBypass}
               crackIntensity={crackIntensity}
               crackSampleId={crackSampleId}
+              reelEdit={studioView === "editor" ? reelEdit : null}
+              previewSeekClipSec={editorSeekClipSec}
+              onSourceDurationSec={setVideoSourceDurationSec}
               onRefreshMedia={
                 refreshJobMedia
                   ? () => {

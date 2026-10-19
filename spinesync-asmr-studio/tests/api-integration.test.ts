@@ -3,7 +3,6 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { POST as bootstrapPost } from "../app/api/auth/bootstrap/route";
 import {
   assertJobAccess,
   assertMediaAccess,
@@ -96,14 +95,17 @@ test("bootstrap returns 401 in strict mode without credentials", async () => {
     },
     async () => {
       resetDbForTests();
-      const res = await bootstrapPost(
+      const { bootstrapAuthSession } = await import(
+        "../lib/server/bootstrap-session"
+      );
+      const result = await bootstrapAuthSession(
         new Request("http://localhost/api/auth/bootstrap", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: "{}",
         }),
       );
-      assert.equal(res.status, 401);
+      assert.equal(result.status, 401);
     },
   );
 });

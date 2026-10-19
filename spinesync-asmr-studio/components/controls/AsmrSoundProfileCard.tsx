@@ -71,8 +71,8 @@ export function AsmrSoundProfileCard({
           ))}
         </select>
         <p className="mt-1 text-[10px] text-slate-500">
-          Live preview schedules sample @ peak; export uses same primary + ribbon
-          tail.
+          Bundled WAV library under /audio/cracks — preview and ffmpeg export
+          share the same files (procedural fallback if missing).
         </p>
       </div>
 

@@ -7,6 +7,8 @@ export type CrackSampleId = "syn-bright" | "syn-warm" | "syn-deep" | "syn-ribbon
 export interface CrackSampleDef {
   id: CrackSampleId;
   label: string;
+  /** Served from /public; preview + ffmpeg prefer this over procedural fallback */
+  wavPath?: string;
   /** High-pass Hz for transient body */
   hp: number;
   /** Low-pass Hz for air */
@@ -21,7 +23,8 @@ export interface CrackSampleDef {
 export const CRACK_SAMPLES: CrackSampleDef[] = [
   {
     id: "syn-bright",
-    label: "Bright joint pop",
+    label: "Bright joint pop (WAV)",
+    wavPath: "/audio/cracks/bright.wav",
     hp: 2800,
     lp: 9500,
     durationSec: 0.08,
@@ -30,7 +33,8 @@ export const CRACK_SAMPLES: CrackSampleDef[] = [
   },
   {
     id: "syn-warm",
-    label: "Warm thud + crack",
+    label: "Warm thud + crack (WAV)",
+    wavPath: "/audio/cracks/warm.wav",
     hp: 1800,
     lp: 7200,
     durationSec: 0.1,
@@ -39,7 +43,8 @@ export const CRACK_SAMPLES: CrackSampleDef[] = [
   },
   {
     id: "syn-deep",
-    label: "Deep cavitation",
+    label: "Deep cavitation (WAV)",
+    wavPath: "/audio/cracks/deep.wav",
     hp: 1200,
     lp: 5800,
     durationSec: 0.12,
@@ -48,7 +53,8 @@ export const CRACK_SAMPLES: CrackSampleDef[] = [
   },
   {
     id: "syn-ribbon",
-    label: "Ribbon tail (ASMR)",
+    label: "Ribbon tail (WAV)",
+    wavPath: "/audio/cracks/ribbon.wav",
     hp: 3200,
     lp: 11_000,
     durationSec: 0.07,
@@ -93,6 +99,7 @@ export function synthesizeCrackBuffer(
   return buffer;
 }
 
+/** Procedural ffmpeg crack when WAV asset is missing on disk */
 export function ffmpegCrackChain(
   sample: CrackSampleDef,
   volume: number,
@@ -102,4 +109,33 @@ export function ffmpegCrackChain(
   const vol = Math.max(0.01, volume).toFixed(2);
   const d = sample.durationSec.toFixed(2);
   return `anoisesrc=d=${d}:c=white:sample_rate=48000,volume=${vol},highpass=f=${sample.hp},lowpass=f=${sample.lp},afade=t=out:st=${(sample.durationSec * 0.55).toFixed(3)}:d=${(sample.durationSec * 0.35).toFixed(3)},adelay=${delayMs}|${delayMs}[${label}]`;
+}
+
+export function ffmpegCrackFromWavInput(
+  inputIndex: number,
+  volume: number,
+  delayMs: number,
+  label: string,
+): string {
+  const vol = Math.max(0.01, volume).toFixed(2);
+  return `[${inputIndex}:a]volume=${vol},adelay=${delayMs}|${delayMs}[${label}]`;
+}
+
+/** Web Audio: prefer bundled WAV; procedural fallback offline or on fetch failure */
+export async function decodeCrackSample(
+  ctx: BaseAudioContext,
+  sample: CrackSampleDef,
+): Promise<AudioBuffer> {
+  if (sample.wavPath && typeof fetch !== "undefined") {
+    try {
+      const res = await fetch(sample.wavPath);
+      if (res.ok) {
+        const ab = await res.arrayBuffer();
+        return await ctx.decodeAudioData(ab.slice(0));
+      }
+    } catch {
+      /* fallback */
+    }
+  }
+  return synthesizeCrackBuffer(ctx, sample);
 }

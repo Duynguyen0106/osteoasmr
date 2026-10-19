@@ -9,7 +9,15 @@ import {
   eqBoostToGainDb,
   getAsmrProfile,
 } from "@/lib/asmr-profiles";
-import { ffmpegCrackChain, getCrackSample } from "@/lib/crack-samples";
+import {
+  ffmpegCrackChain,
+  ffmpegCrackFromWavInput,
+  getCrackSample,
+} from "@/lib/crack-samples";
+import {
+  crackSampleWavExists,
+  resolveCrackWavFsPath,
+} from "@/lib/server/crack-asset-path";
 import { probeDurationSec, runFfmpeg } from "./ffmpeg";
 
 const LOUDNORM = `loudnorm=I=${ASMR_TARGET_LUFS}:TP=-1.5:LRA=11`;
@@ -84,6 +92,30 @@ export async function renderEqAudio(options: {
 
   const parts: string[] = [`[0:a]${mainChain}[main]`];
   const mixInputs: string[] = ["[main]"];
+  const extraInputs: string[] = [];
+
+  const addCrackLayer = (
+    sample: ReturnType<typeof getCrackSample>,
+    volume: number,
+    delay: number,
+    label: string,
+  ) => {
+    if (crackSampleWavExists(sample)) {
+      const fsPath = resolveCrackWavFsPath(sample.wavPath!);
+      let slot = extraInputs.indexOf(fsPath);
+      if (slot === -1) {
+        extraInputs.push(fsPath);
+        slot = extraInputs.length - 1;
+      }
+      const inputIndex = slot + 1;
+      parts.push(
+        ffmpegCrackFromWavInput(inputIndex, volume, delay, label),
+      );
+    } else {
+      parts.push(ffmpegCrackChain(sample, volume, delay, label));
+    }
+    mixInputs.push(`[${label}]`);
+  };
 
   if (roomTone) {
     parts.push(
@@ -93,12 +125,10 @@ export async function renderEqAudio(options: {
   }
 
   if (sfxCrack && crackVol > 0.01) {
-    parts.push(ffmpegCrackChain(crackSample, crackVol, delayMs, "crack1"));
-    mixInputs.push("[crack1]");
+    addCrackLayer(crackSample, crackVol, delayMs, "crack1");
     if (crackIntensity >= 45) {
       const tail = getCrackSample("syn-ribbon");
-      parts.push(ffmpegCrackChain(tail, Number(secVol), secDelayMs, "crack2"));
-      mixInputs.push("[crack2]");
+      addCrackLayer(tail, Number(secVol), secDelayMs, "crack2");
     }
   }
 
@@ -107,13 +137,17 @@ export async function renderEqAudio(options: {
     `${mixInputs.join("")}amix=inputs=${mixCount}:duration=first:dropout_transition=0,${LOUDNORM}[aout]`,
   );
 
-  await runFfmpeg([
-    "-i",
-    sourcePath,
+  const ffmpegArgs = ["-i", sourcePath];
+  for (const p of extraInputs) {
+    ffmpegArgs.push("-i", p);
+  }
+  ffmpegArgs.push(
     "-filter_complex",
     parts.join(";"),
     "-map",
     "[aout]",
     outputPath,
-  ]);
+  );
+
+  await runFfmpeg(ffmpegArgs);
 }

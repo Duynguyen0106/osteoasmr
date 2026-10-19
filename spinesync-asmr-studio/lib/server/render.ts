@@ -9,6 +9,7 @@ export async function renderReel916(options: {
   burnCaptions: boolean;
   peakTimeSec: number;
   autoPeakZoom: boolean;
+  zoomIntensity?: number;
 }) {
   const {
     sourcePath,
@@ -18,7 +19,9 @@ export async function renderReel916(options: {
     burnCaptions,
     peakTimeSec,
     autoPeakZoom,
+    zoomIntensity = 100,
   } = options;
+  const zoomScale = 1 + (Math.max(0, Math.min(100, zoomIntensity)) / 100) * 0.12;
 
   if (sourcePath && (await fileExists(sourcePath))) {
     let vf =
@@ -30,7 +33,7 @@ export async function renderReel916(options: {
     if (autoPeakZoom) {
       const p = Math.max(0, peakTimeSec - 0.2);
       const p2 = peakTimeSec + 0.35;
-      vf += `,zoompan=z='if(between(t,${p},${p2}),1.08,1)':d=1:x=iw/2-(iw/zoom/2):y=ih/2-(ih/zoom/2):s=1080x1920:fps=30`;
+      vf += `,zoompan=z='if(between(t,${p},${p2}),${zoomScale.toFixed(3)},1)':d=1:x=iw/2-(iw/zoom/2):y=ih/2-(ih/zoom/2):s=1080x1920:fps=30`;
     }
 
     const args = ["-i", sourcePath];

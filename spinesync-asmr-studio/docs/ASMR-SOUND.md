@@ -2,7 +2,7 @@
 
 ## Goal
 
-End-to-end **crack-forward ASMR** for osteopathic reels: detect the adjustment peak, sculpt 2–6 kHz presence, optional synthetic crack layer, **hear it in the preview**, and bake the same chain into ffmpeg exports.
+End-to-end **crack-forward ASMR** for osteopathic reels: detect the adjustment peak, sculpt 2–6 kHz presence, optional crack layer from **bundled WAVs** (`public/audio/cracks/`, regen via `npm run generate:crack-wavs`), **hear it in the preview**, and bake the same files into ffmpeg exports (procedural fallback if assets are missing).
 
 ## Signal chain (target)
 
@@ -59,7 +59,7 @@ Ingest (MP4/MOV)
 - [x] GPU waveform from decoded buffer (shared worker + OffscreenCanvas)
 - [x] Real-time crack preview via scheduled AudioBuffer at peak
 - [x] Per-project ASMR presets in SQLite (`/api/asmr-presets`)
-- [x] Crack sample library (`lib/crack-samples.ts`) — preview + ffmpeg export
+- [x] Crack sample library (`lib/crack-samples.ts` + WAV assets) — preview + ffmpeg export share `/audio/cracks/*.wav`
 
 ## Env / modes
 

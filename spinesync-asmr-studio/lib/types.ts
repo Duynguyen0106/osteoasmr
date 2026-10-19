@@ -1,3 +1,5 @@
+import type { ReelEditState } from "@/lib/contract/reel-edit";
+
 export type FocusCategory = "neck" | "lumbar" | "thoracic" | "shoulder-hip";
 
 export type PipelineStageId =
@@ -58,4 +60,5 @@ export interface PipelineRunContext {
   roomTone?: boolean;
   bypassSculpt?: boolean;
   crackSampleId?: string;
+  edit?: ReelEditState;
 }
