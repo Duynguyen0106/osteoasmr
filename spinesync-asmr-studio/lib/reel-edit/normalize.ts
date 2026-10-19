@@ -24,6 +24,11 @@ export function normalizeReelEdit(
     peak = Math.max(0, Math.min(peak, clipDur));
   }
 
+  let thumbTimeSec = edit.thumbTimeSec;
+  if (thumbTimeSec != null) {
+    thumbTimeSec = Math.max(0, Math.min(thumbTimeSec, clipDur));
+  }
+
   const markers = edit.markers
     .map((m) => ({
       ...m,
@@ -61,6 +66,7 @@ export function normalizeReelEdit(
     trimInSec: trimIn,
     trimOutSec: trimOut,
     peakTimeSec: peak,
+    thumbTimeSec,
     markers,
     captions,
     brollOverlays,

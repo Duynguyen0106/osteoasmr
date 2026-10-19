@@ -686,6 +686,7 @@ export function StudioDashboard({
                 freqGainDb={jobResult?.peak.freqGainDb}
                 freqKhz={jobResult?.peak.freqKhz}
                 thumbUrl={jobResult?.previewUrls?.thumb ?? null}
+                thumbTimeSec={reelEdit?.thumbTimeSec ?? null}
               />
             </div>
             <CopywriterTabs

@@ -27,6 +27,8 @@ export const reelEditSchema = z.object({
   trimOutSec: z.number().min(0).nullable().default(null),
   /** Manual peak on timeline (0 = trim in); null = auto-detect on export */
   peakTimeSec: z.number().min(0).nullable().default(null),
+  /** Thumbnail frame on clip timeline; null = use peak / auto peak */
+  thumbTimeSec: z.number().min(0).nullable().default(null),
   /** Optional caption overrides (skip Whisper when set) */
   captions: z.array(captionSegmentSchema).optional(),
   markers: z.array(reelMarkerSchema).default([]),

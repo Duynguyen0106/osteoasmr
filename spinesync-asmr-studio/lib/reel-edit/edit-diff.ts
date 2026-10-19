@@ -23,6 +23,7 @@ export function hasMeaningfulEdit(
   }
   if (Math.abs(clip - baseClip) > EPS) return true;
   if (edit.peakTimeSec != null) return true;
+  if (edit.thumbTimeSec != null) return true;
   if (edit.captions?.length) return true;
   if (edit.markers.length > 0) return true;
   if ((edit.brollOverlays?.length ?? 0) > 0) return true;

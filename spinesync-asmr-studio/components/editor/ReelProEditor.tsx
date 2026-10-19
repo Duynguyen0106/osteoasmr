@@ -202,6 +202,29 @@ export function ReelProEditor({
         ))}
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="rounded-lg border border-rose-500/35 bg-rose-500/10 px-2 py-1 text-[10px] text-rose-100 hover:bg-rose-500/20"
+          onClick={() => editor.setThumbAtPlayhead()}
+        >
+          Set thumbnail at playhead ({editor.playheadSec.toFixed(1)}s on clip)
+        </button>
+        {editor.edit.thumbTimeSec != null && (
+          <button
+            type="button"
+            className="rounded-lg border border-slate-600/50 px-2 py-1 text-[10px] text-slate-400 hover:text-slate-200"
+            onClick={() => editor.clearThumbOverride()}
+          >
+            Thumbnail follows peak
+          </button>
+        )}
+        <span className="text-[10px] text-slate-500">
+          Export frame @ {editor.thumbDisplay.toFixed(1)}s
+          {editor.edit.thumbTimeSec != null ? " (custom)" : " (peak)"}
+        </span>
+      </div>
+
       <TimelineMultiTrack
         sourceDurationSec={sourceDurationSec}
         durationSourceLabel={durationSourceLabel}
