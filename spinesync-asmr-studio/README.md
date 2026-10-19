@@ -107,6 +107,6 @@ Check `/api/health` for `storage`, `queue`, `remotion`, and `auth` blocks.
 | **Ayrshare live posts** | Requires `APP_BASE_URL` with **HTTPS** and a public reel URL (S3/CloudFront or signed media). |
 | **Redis queue (optional)** | `JOB_QUEUE_BACKEND=redis` + `REDIS_URL` with `JOB_EXECUTOR=worker`. |
 
-Run `npm run test` for access/media/startup integration checks.
+Run `npm test` (unit + SQLite integration). GitHub Actions runs the same suite after `npm rebuild better-sqlite3`.
 
 **Production runtime:** set `SPINESYNC_SESSION_SECRET` and `SPINESYNC_MEDIA_TOKEN_SECRET` (non-default values). `getDb()` validates on first use; `npm run build` skips validation via lifecycle detection.
