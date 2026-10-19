@@ -132,6 +132,7 @@ Explicitly **out of scope** for Phase 2 unless product asks: multi-user review, 
 
 ## 8. Phase 2 entry checklist
 
+- [x] Phase **2.1–2.6** shipped via PRs **#9–#14** (caption timeline → incremental preview)
 - [x] Merge **PR #7** (+ pre-phase-2 checklist) to `main` (2026-10-19)
 - [ ] Smoke: upload → Editor → trim + peak → server pipeline → reel matches trim
 - [x] Fix **P0.1** caption/trim timebase — `lib/reel-edit/captions.ts`, pipeline export filter
@@ -167,6 +168,22 @@ When smoke is checked, proceed to Phase 2.2 (edit persistence / asset store).
 - [x] Mock mode banner and pipeline logs summarize pending clip (trim, peak, captions)
 - [x] Editor copy clarifies preview-only vs server export
 - [ ] Manual smoke: long file where audio decode ≠ video duration — warning visible, trim sane
+
+### Phase 2.4 — B-roll / overlay track
+
+- [x] `brollOverlays[]` on reel edit contract (assetId, source start/end, broll in-point)
+- [x] B-roll timeline lane + upload at playhead (server assets)
+- [x] Pipeline compositor (`applyBrollOverlays`) after trim, before EQ/render
+- [x] Unit tests for clip-space B-roll mapping
+- [ ] Manual smoke: overlay visible in exported reel during window
+
+### Phase 2.5 — routing
+
+- [x] `/editor` opens Reel Pro Editor tab (URL sync when `syncRoutes`)
+- [x] `/jobs/[id]/edit` deep link loads job + edit (server mode)
+- [x] Tab switches update URL (`/` ↔ `/editor` ↔ job edit when a job is active)
+- [x] Job history row includes editor deep link
+- [ ] Manual smoke: share `/jobs/{id}/edit` → recipient sees job media + edit restored
 
 ### Phase 2.6 — incremental preview
 

@@ -21,6 +21,8 @@ Copy `.env.example` to `.env.local` for server mode. Requires **ffmpeg** on `PAT
 
 | Method | Path | Description |
 |--------|------|-------------|
+| Page | `/editor` | Reel Pro Editor (URL-synced tab) |
+| Page | `/jobs/:id/edit` | Deep link: load job + editor |
 | GET | `/api/health` | ffmpeg + storage status |
 | POST | `/api/assets/upload` | Multipart `file` → `{ assetId }` |
 | GET | `/api/assets/:id/analyze` | ffmpeg peak time + duration (server mode) |

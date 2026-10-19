@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useReelEditPersistence } from "@/hooks/useReelEditPersistence";
 import { savePersistedReelEdit } from "@/lib/reel-edit/persist";
 import { ApiKeyPanel } from "@/components/layout/ApiKeyPanel";
@@ -53,8 +54,23 @@ import {
   resolveSourceDuration,
   sourceDurationLabel,
 } from "@/lib/reel-edit/source-duration";
+import {
+  jobEditPath,
+  studioPathForView,
+} from "@/lib/studio-routes";
 
-export function StudioDashboard() {
+export type StudioDashboardProps = {
+  initialStudioView?: StudioView;
+  deepLinkJobId?: string;
+  syncRoutes?: boolean;
+};
+
+export function StudioDashboard({
+  initialStudioView = "pipeline",
+  deepLinkJobId,
+  syncRoutes = false,
+}: StudioDashboardProps = {}) {
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [assetId, setAssetId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -79,7 +95,8 @@ export function StudioDashboard() {
   const [previewBypass, setPreviewBypass] = useState(false);
   const [exportBypassSculpt, setExportBypassSculpt] = useState(false);
   const [crackSampleId, setCrackSampleId] = useState<CrackSampleId>("syn-bright");
-  const [studioView, setStudioView] = useState<StudioView>("pipeline");
+  const [studioView, setStudioViewState] = useState<StudioView>(initialStudioView);
+  const deepLinkHandledRef = useRef<string | null>(null);
   const [reelEdit, setReelEdit] = useState<ReelEditState | null>(null);
   const [editorBootKey, setEditorBootKey] = useState(0);
   const [editorSeekClipSec, setEditorSeekClipSec] = useState<number | null>(null);
@@ -159,6 +176,58 @@ export function StudioDashboard() {
     onRestore: bumpEditorFromStoredEdit,
     onRestoredLog: onPersistedEditRestored,
   });
+
+  const restoreJobEdit = useCallback(
+    (edit: ReelEditState | undefined) => {
+      if (!edit) return;
+      bumpEditorFromStoredEdit(edit);
+      if (typeof window !== "undefined") {
+        savePersistedReelEdit(
+          window.localStorage,
+          { assetId, file },
+          edit,
+          sourceDurationSec,
+        );
+      }
+      appendLog("Restored reel edit from job config");
+    },
+    [appendLog, assetId, bumpEditorFromStoredEdit, file, sourceDurationSec],
+  );
+
+  const setStudioView = useCallback(
+    (view: StudioView) => {
+      setStudioViewState(view);
+      if (!syncRoutes) return;
+      router.push(
+        studioPathForView(view, {
+          jobId: view === "editor" ? server.jobId : null,
+        }),
+      );
+    },
+    [router, server.jobId, syncRoutes],
+  );
+
+  const openJobInEditor = useCallback(
+    (id: string) => {
+      void server.loadJob(id, restoreJobEdit);
+      setStudioViewState("editor");
+      if (syncRoutes) router.push(jobEditPath(id));
+    },
+    [restoreJobEdit, router, server, syncRoutes],
+  );
+
+  useEffect(() => {
+    if (!deepLinkJobId) return;
+    if (!isServerPipeline) {
+      appendLog("Job edit deep links require NEXT_PUBLIC_PIPELINE_MODE=server");
+      return;
+    }
+    if (deepLinkHandledRef.current === deepLinkJobId) return;
+    deepLinkHandledRef.current = deepLinkJobId;
+    appendLog(`Deep link · loading job ${deepLinkJobId.slice(0, 8)}…`);
+    void server.loadJob(deepLinkJobId, restoreJobEdit);
+    setStudioViewState("editor");
+  }, [appendLog, deepLinkJobId, restoreJobEdit, server]);
 
   const peakTimeSec =
     jobResult?.peak.timeSec ??
@@ -259,6 +328,15 @@ export function StudioDashboard() {
       appendLog(`Rejected ingest: ${fileName} (MP4/MOV only)`);
     },
     [appendLog],
+  );
+
+  const handleBrollUpload = useCallback(
+    async (f: File) => {
+      if (!isServerPipeline) return null;
+      const id = await uploadAssetSmart(f);
+      return { assetId: id, label: f.name };
+    },
+    [],
   );
 
   const handlePresetSelect = useCallback(
@@ -471,6 +549,8 @@ export function StudioDashboard() {
             }
             quickPreviewLoading={incrementalPreview.loading}
             quickPreviewError={incrementalPreview.error}
+            onBrollUpload={isServerPipeline ? handleBrollUpload : undefined}
+            onBrollLog={appendLog}
             onEditChange={setReelEdit}
             onSeekPreview={(t) => setEditorSeekClipSec(t)}
           />
@@ -547,23 +627,7 @@ export function StudioDashboard() {
               <JobHistoryPanel
                 activeJobId={server.jobId}
                 refreshKey={server.historyTick}
-                onOpenJob={(id) =>
-                  void server.loadJob(id, (edit) => {
-                    if (edit) {
-                      bumpEditorFromStoredEdit(edit);
-                      if (typeof window !== "undefined") {
-                        savePersistedReelEdit(
-                          window.localStorage,
-                          { assetId, file },
-                          edit,
-                          sourceDurationSec,
-                        );
-                      }
-                      setStudioView("editor");
-                      appendLog("Restored reel edit from job config");
-                    }
-                  })
-                }
+                onOpenJob={openJobInEditor}
               />
             )}
           </div>

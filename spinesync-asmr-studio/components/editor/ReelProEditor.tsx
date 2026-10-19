@@ -2,6 +2,7 @@
 
 import {
   Captions,
+  Film,
   MousePointer2,
   Redo2,
   Scissors,
@@ -9,7 +10,7 @@ import {
   Undo2,
   Zap,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CaptionSegment } from "@/lib/contract/job";
 import type { ReelEditState } from "@/lib/contract/reel-edit";
 import { TimelineMultiTrack } from "@/components/editor/TimelineMultiTrack";
@@ -20,6 +21,7 @@ const TOOLS: { id: EditorTool; label: string; icon: typeof MousePointer2 }[] = [
   { id: "trim", label: "Trim", icon: Scissors },
   { id: "peak", label: "Peak", icon: Zap },
   { id: "caption", label: "Caption", icon: Captions },
+  { id: "broll", label: "B-roll", icon: Film },
 ];
 
 interface ReelProEditorProps {
@@ -35,6 +37,10 @@ interface ReelProEditorProps {
   onQuickPreview?: () => void;
   quickPreviewLoading?: boolean;
   quickPreviewError?: string | null;
+  onBrollUpload?: (
+    file: File,
+  ) => Promise<{ assetId: string; label: string } | null>;
+  onBrollLog?: (message: string) => void;
   onEditChange?: (edit: ReturnType<typeof useReelEditor>["edit"]) => void;
   onSeekPreview?: (clipTimeSec: number) => void;
 }
@@ -52,6 +58,8 @@ export function ReelProEditor({
   onQuickPreview,
   quickPreviewLoading = false,
   quickPreviewError = null,
+  onBrollUpload,
+  onBrollLog,
   onEditChange,
   onSeekPreview,
 }: ReelProEditorProps) {
@@ -62,6 +70,31 @@ export function ReelProEditor({
     initialEdit,
   });
   const [captionIndex, setCaptionIndex] = useState(0);
+  const [brollIndex, setBrollIndex] = useState(0);
+  const brollInputRef = useRef<HTMLInputElement>(null);
+  const [brollUploading, setBrollUploading] = useState(false);
+
+  const handleBrollFile = useCallback(
+    async (file: File | null) => {
+      if (!file || !onBrollUpload) return;
+      setBrollUploading(true);
+      try {
+        const result = await onBrollUpload(file);
+        if (result) {
+          editor.addBrollOverlay(result.assetId, result.label);
+          onBrollLog?.(`B-roll ingested · ${result.label}`);
+        }
+      } catch (err) {
+        onBrollLog?.(
+          `B-roll upload failed: ${err instanceof Error ? err.message : "unknown"}`,
+        );
+      } finally {
+        setBrollUploading(false);
+        if (brollInputRef.current) brollInputRef.current.value = "";
+      }
+    },
+    [editor, onBrollLog, onBrollUpload],
+  );
 
   useEffect(() => {
     onEditChange?.(editor.edit);
@@ -190,6 +223,11 @@ export function ReelProEditor({
         onSelectCaption={setCaptionIndex}
         selectedCaptionIndex={captionIndex}
         onCaptionTimingChange={editor.updateCaptionTiming}
+        brollOverlays={editor.edit.brollOverlays}
+        selectedBrollIndex={brollIndex}
+        onSelectBroll={setBrollIndex}
+        onBrollTimingChange={editor.updateBrollTiming}
+        onRemoveBroll={editor.removeBrollOverlay}
       />
 
       {editor.tool === "caption" && (
@@ -200,6 +238,33 @@ export function ReelProEditor({
         >
           Add caption at playhead ({editor.playheadSec.toFixed(1)}s on clip)
         </button>
+      )}
+
+      {editor.tool === "broll" && (
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            ref={brollInputRef}
+            type="file"
+            accept="video/*"
+            className="hidden"
+            onChange={(e) => void handleBrollFile(e.target.files?.[0] ?? null)}
+          />
+          <button
+            type="button"
+            disabled={!onBrollUpload || brollUploading}
+            className="rounded-lg border border-teal-500/40 bg-teal-500/10 px-3 py-1.5 text-[11px] text-teal-100 hover:bg-teal-500/20 disabled:opacity-40"
+            onClick={() => brollInputRef.current?.click()}
+          >
+            {brollUploading
+              ? "Uploading B-roll…"
+              : `Add B-roll at playhead (${editor.playheadSec.toFixed(1)}s on clip)`}
+          </button>
+          {!onBrollUpload && (
+            <span className="text-[10px] text-amber-200/90">
+              B-roll upload requires server pipeline mode.
+            </span>
+          )}
+        </div>
       )}
 
       <div className="grid gap-3 md:grid-cols-2">

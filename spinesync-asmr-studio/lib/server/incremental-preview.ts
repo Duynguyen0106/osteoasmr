@@ -2,7 +2,10 @@ import fs from "fs";
 import path from "path";
 import { defaultReelEdit } from "@/lib/contract/reel-edit";
 import type { PreviewReelBody } from "@/lib/contract/preview-reel";
+import { brollForTrimmedExport } from "@/lib/reel-edit/broll";
 import { normalizeReelEdit, peakOnTrimmedSource } from "@/lib/reel-edit/normalize";
+import { applyBrollOverlays } from "./broll-composite";
+import { getAssetById } from "./job-service";
 import { materializeAssetLocalPath } from "./assets";
 import { checkFfmpegAvailable } from "./ffmpeg-bin";
 import {
@@ -83,6 +86,43 @@ export async function buildIncrementalReelPreview(
     sourceDurationSec: rawDuration,
   });
   if (trimmed.trimmed) sourcePath = trimmed.path;
+
+  const brollLayers = brollForTrimmedExport(edit.brollOverlays, edit);
+  if (brollLayers.length > 0) {
+    const resolved: {
+      brollPath: string;
+      clipStartSec: number;
+      clipEndSec: number;
+      brollInSec: number;
+    }[] = [];
+    for (const layer of brollLayers) {
+      const brollAsset = getAssetById(layer.assetId);
+      if (!brollAsset) continue;
+      const brollPath = await materializeAssetLocalPath({
+        storagePath: brollAsset.storagePath,
+        storageKey: brollAsset.storageKey,
+        storageDriver: brollAsset.storageDriver,
+      });
+      if (brollPath && (await fileExists(brollPath))) {
+        resolved.push({
+          brollPath,
+          clipStartSec: layer.clipStartSec,
+          clipEndSec: layer.clipEndSec,
+          brollInSec: layer.brollInSec,
+        });
+      }
+    }
+    if (resolved.length > 0) {
+      const compositePath = path.join(dir, "source-broll-composite.mp4");
+      const composite = await applyBrollOverlays({
+        mainPath: sourcePath,
+        outputPath: compositePath,
+        workDir: dir,
+        layers: resolved,
+      });
+      if (composite.composited) sourcePath = composite.path;
+    }
+  }
 
   const autoPeak = await detectPeakTimeSec(sourcePath, 4.2);
   const peakTimeSec = peakOnTrimmedSource(edit, autoPeak);

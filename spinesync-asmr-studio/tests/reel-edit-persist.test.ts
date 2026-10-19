@@ -40,6 +40,7 @@ const sampleEdit: ReelEditState = {
   peakTimeSec: 3,
   zoomIntensity: 90,
   markers: [],
+  brollOverlays: [],
   captions: [{ start: 0.5, end: 2, text: "hello" }],
 };
 
@@ -106,6 +107,7 @@ test("save removes storage when edit is default-only", () => {
       peakTimeSec: null,
       zoomIntensity: 100,
       markers: [],
+      brollOverlays: [],
     },
     12,
   );

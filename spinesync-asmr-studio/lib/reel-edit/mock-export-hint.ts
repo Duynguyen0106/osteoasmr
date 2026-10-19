@@ -8,15 +8,17 @@ export function mockReelEditBannerLine(
   const clip = clipDurationSec(edit);
   const out = edit.trimOutSec?.toFixed(1) ?? sourceDurationSec.toFixed(1);
   const caps = edit.captions?.length ?? 0;
+  const broll = edit.brollOverlays?.length ?? 0;
   const peak =
     edit.peakTimeSec != null
       ? `${edit.peakTimeSec.toFixed(1)}s on clip`
       : "auto peak";
-  return `Pending export: ${clip.toFixed(1)}s clip (trim ${edit.trimInSec.toFixed(1)}–${out}s) · ${peak} · ${caps} caption${caps === 1 ? "" : "s"} — switch to server mode to bake.`;
+  return `Pending export: ${clip.toFixed(1)}s clip (trim ${edit.trimInSec.toFixed(1)}–${out}s) · ${peak} · ${caps} caption${caps === 1 ? "" : "s"} · ${broll} B-roll — switch to server mode to bake.`;
 }
 
 export function mockReelEditPipelineLog(edit: ReelEditState): string {
   const clip = clipDurationSec(edit);
   const caps = edit.captions?.length ?? 0;
-  return `Reel edit (mock — not exported): ${clip.toFixed(1)}s clip · trim in ${edit.trimInSec.toFixed(1)}s · peak ${edit.peakTimeSec?.toFixed(1) ?? "auto"} · ${caps} captions · set NEXT_PUBLIC_PIPELINE_MODE=server to bake`;
+  const broll = edit.brollOverlays?.length ?? 0;
+  return `Reel edit (mock — not exported): ${clip.toFixed(1)}s clip · trim in ${edit.trimInSec.toFixed(1)}s · peak ${edit.peakTimeSec?.toFixed(1) ?? "auto"} · ${caps} captions · ${broll} B-roll · set NEXT_PUBLIC_PIPELINE_MODE=server to bake`;
 }

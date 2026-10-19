@@ -1,6 +1,8 @@
 "use client";
 
-import { History, Loader2 } from "lucide-react";
+import { History, Link2, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { jobEditPath } from "@/lib/studio-routes";
 import { useCallback, useEffect, useState } from "react";
 import { spinesyncFetch } from "@/lib/api-client";
 
@@ -85,20 +87,34 @@ export function JobHistoryPanel({
         <ul className="max-h-48 space-y-1 overflow-y-auto">
           {jobs.map((job) => (
             <li key={job.id}>
-              <button
-                type="button"
-                onClick={() => onOpenJob(job.id)}
-                className={`flex w-full items-center justify-between gap-2 rounded-lg border px-2 py-1.5 text-left text-xs transition ${
+              <div
+                className={`flex items-center gap-1 rounded-lg border pr-1 transition ${
                   activeJobId === job.id
-                    ? "border-cyan-400/40 bg-cyan-500/10 text-cyan-100"
-                    : "border-slate-700/50 bg-slate-900/30 text-slate-300 hover:border-cyan-500/20"
+                    ? "border-cyan-400/40 bg-cyan-500/10"
+                    : "border-slate-700/50 bg-slate-900/30"
                 }`}
               >
-                <span className="truncate font-medium">{job.sourceLabel}</span>
-                <span className="shrink-0 font-mono text-[10px] text-slate-500">
-                  {job.status} · {job.id.slice(0, 8)}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenJob(job.id)}
+                  className={`min-w-0 flex-1 rounded-lg px-2 py-1.5 text-left text-xs ${
+                    activeJobId === job.id ? "text-cyan-100" : "text-slate-300"
+                  }`}
+                >
+                  <span className="block truncate font-medium">{job.sourceLabel}</span>
+                  <span className="font-mono text-[10px] text-slate-500">
+                    {job.status} · {job.id.slice(0, 8)}
+                  </span>
+                </button>
+                <Link
+                  href={jobEditPath(job.id)}
+                  className="shrink-0 rounded-md p-1.5 text-slate-500 hover:bg-slate-800/80 hover:text-cyan-300"
+                  title="Open editor deep link"
+                  aria-label={`Editor link for job ${job.id.slice(0, 8)}`}
+                >
+                  <Link2 className="h-3.5 w-3.5" aria-hidden />
+                </Link>
+              </div>
             </li>
           ))}
         </ul>
