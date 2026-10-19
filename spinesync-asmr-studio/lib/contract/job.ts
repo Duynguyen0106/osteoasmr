@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { crackSampleIdSchema } from "@/lib/contract/crack-sample";
 
 export const focusCategorySchema = z.enum([
   "neck",
@@ -22,6 +23,7 @@ export const createJobBodySchema = z.object({
   crackIntensity: z.number().min(0).max(100).default(65),
   roomTone: z.boolean().default(false),
   bypassSculpt: z.boolean().default(false),
+  crackSampleId: crackSampleIdSchema.default("syn-bright"),
   sourceLabel: z.string().min(1),
 });
 
@@ -69,6 +71,7 @@ export interface AsmrProfileSnapshot {
   crackIntensity: number;
   roomTone: boolean;
   bypassSculpt: boolean;
+  crackSampleId: string;
   targetLufs: number;
 }
 

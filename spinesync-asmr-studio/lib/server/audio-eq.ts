@@ -9,6 +9,7 @@ import {
   eqBoostToGainDb,
   getAsmrProfile,
 } from "@/lib/asmr-profiles";
+import { ffmpegCrackChain, getCrackSample } from "@/lib/crack-samples";
 import { probeDurationSec, runFfmpeg } from "./ffmpeg";
 
 const LOUDNORM = `loudnorm=I=${ASMR_TARGET_LUFS}:TP=-1.5:LRA=11`;
@@ -27,6 +28,7 @@ export async function renderEqAudio(options: {
   crackIntensity: number;
   roomTone: boolean;
   bypassSculpt: boolean;
+  crackSampleId: string;
   peakTimeSec: number;
 }) {
   const {
@@ -38,8 +40,11 @@ export async function renderEqAudio(options: {
     crackIntensity,
     roomTone,
     bypassSculpt,
+    crackSampleId,
     peakTimeSec,
   } = options;
+
+  const crackSample = getCrackSample(crackSampleId);
 
   if (bypassSculpt) {
     await runFfmpeg([
@@ -88,14 +93,11 @@ export async function renderEqAudio(options: {
   }
 
   if (sfxCrack && crackVol > 0.01) {
-    parts.push(
-      `anoisesrc=d=0.08:c=white:sample_rate=48000,volume=${crackVol},highpass=f=2800,lowpass=f=9500,afade=t=out:st=0.045:d=0.03,adelay=${delayMs}|${delayMs}[crack1]`,
-    );
+    parts.push(ffmpegCrackChain(crackSample, crackVol, delayMs, "crack1"));
     mixInputs.push("[crack1]");
     if (crackIntensity >= 45) {
-      parts.push(
-        `anoisesrc=d=0.06:c=white:sample_rate=48000,volume=${secVol},highpass=f=3000,lowpass=f=9000,afade=t=out:st=0.035:d=0.025,adelay=${secDelayMs}|${secDelayMs}[crack2]`,
-      );
+      const tail = getCrackSample("syn-ribbon");
+      parts.push(ffmpegCrackChain(tail, Number(secVol), secDelayMs, "crack2"));
       mixInputs.push("[crack2]");
     }
   }

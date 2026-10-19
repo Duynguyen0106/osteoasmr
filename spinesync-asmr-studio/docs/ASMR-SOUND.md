@@ -51,13 +51,14 @@ Ingest (MP4/MOV)
 - [x] **Loudness** — ffmpeg `loudnorm` **-14 LUFS** on EQ stem
 - [x] **A/B preview** — bypass toggle (flat vs sculpted Web Audio)
 - [x] **Stem export** — `audio-eq.wav` download + S3 artifact sync
-- [ ] Sample library for cracks (Phase 4)
+- [x] Sample library for cracks (Phase 4)
 
-### Phase 4 — Pro (backlog)
+### Phase 4 — Pro (done)
 
-- [ ] GPU waveform from decoded buffer (shared worker)
-- [ ] Real-time crack preview via scheduled AudioBuffer at peak
-- [ ] Per-project ASMR presets in SQLite
+- [x] GPU waveform from decoded buffer (shared worker + OffscreenCanvas)
+- [x] Real-time crack preview via scheduled AudioBuffer at peak
+- [x] Per-project ASMR presets in SQLite (`/api/asmr-presets`)
+- [x] Crack sample library (`lib/crack-samples.ts`) — preview + ffmpeg export
 
 ## Env / modes
 

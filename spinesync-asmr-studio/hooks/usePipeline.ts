@@ -71,7 +71,7 @@ export function usePipeline() {
       });
       appendLog("▶ RUN FULL AI PIPELINE initiated");
       appendLog(
-        `Source: ${ctx.sourceLabel} · focus=${ctx.focus} · EQ +${ctx.eqBoost}% · crack intensity ${ctx.crackIntensity ?? 65}% · room tone ${ctx.roomTone ? "ON" : "OFF"} · export bypass ${ctx.bypassSculpt ? "ON" : "OFF"} · peak zoom=${ctx.toggles.autoPeakZoom ? "ON" : "OFF"} · SFX crack=${ctx.toggles.sfxCrack ? "ON" : "OFF"} · TikTok subs=${ctx.toggles.tiktokSubs ? "ON" : "OFF"}`,
+        `Source: ${ctx.sourceLabel} · focus=${ctx.focus} · EQ +${ctx.eqBoost}% · crack ${ctx.crackSampleId ?? "syn-bright"} · intensity ${ctx.crackIntensity ?? 65}% · room tone ${ctx.roomTone ? "ON" : "OFF"} · export bypass ${ctx.bypassSculpt ? "ON" : "OFF"} · peak zoom=${ctx.toggles.autoPeakZoom ? "ON" : "OFF"} · SFX crack=${ctx.toggles.sfxCrack ? "ON" : "OFF"} · TikTok subs=${ctx.toggles.tiktokSubs ? "ON" : "OFF"}`,
       );
 
       const total = PIPELINE_STAGES.length;

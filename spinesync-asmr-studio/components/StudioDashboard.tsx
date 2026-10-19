@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { PipelineBanner } from "@/components/layout/PipelineBanner";
 import { IngestionPanel } from "@/components/ingestion/IngestionPanel";
 import { FocusSelector } from "@/components/controls/FocusSelector";
+import { AsmrPresetPanel } from "@/components/controls/AsmrPresetPanel";
 import { AsmrSoundProfileCard } from "@/components/controls/AsmrSoundProfileCard";
 import { ProcessingControls } from "@/components/controls/ProcessingControls";
 import { RunPipelineButton } from "@/components/pipeline/RunPipelineButton";
@@ -21,6 +22,8 @@ import { usePipelineServer } from "@/hooks/usePipelineServer";
 import { isServerPipeline } from "@/lib/pipeline-mode";
 import { getActivePreset, getPresetById } from "@/lib/samples";
 import { PEAK_TIME_SEC } from "@/lib/waveform";
+import type { CrackSampleId } from "@/lib/crack-samples";
+import type { AsmrStudioSettings } from "@/components/controls/AsmrPresetPanel";
 import type { FocusCategory, ProcessingToggles } from "@/lib/types";
 
 import { JobExportsPanel } from "@/components/export/JobExportsPanel";
@@ -34,7 +37,11 @@ export function StudioDashboard() {
   const [assetId, setAssetId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const localVideoUrl = useMediaObjectUrl(file);
-  const { profile: sourceAudio, loading: audioAnalyzing } = useSourceAudioProfile(file);
+  const {
+    profile: sourceAudio,
+    loading: audioAnalyzing,
+    decodedViaWorker,
+  } = useSourceAudioProfile(file);
   const [serverPeakTimeSec, setServerPeakTimeSec] = useState<number | null>(null);
   const [presetId, setPresetId] = useState<string | null>("neck-crack");
   const [focus, setFocus] = useState<FocusCategory>("neck");
@@ -49,6 +56,7 @@ export function StudioDashboard() {
   const [roomTone, setRoomTone] = useState(false);
   const [previewBypass, setPreviewBypass] = useState(false);
   const [exportBypassSculpt, setExportBypassSculpt] = useState(false);
+  const [crackSampleId, setCrackSampleId] = useState<CrackSampleId>("syn-bright");
 
   const mock = usePipeline();
   const server = usePipelineServer({
@@ -212,6 +220,7 @@ export function StudioDashboard() {
         crackIntensity,
         roomTone,
         bypassSculpt: exportBypassSculpt,
+        crackSampleId,
       });
       return;
     }
@@ -224,6 +233,7 @@ export function StudioDashboard() {
       crackIntensity,
       roomTone,
       bypassSculpt: exportBypassSculpt,
+      crackSampleId,
     });
   }, [
     eqBoost,
@@ -235,9 +245,48 @@ export function StudioDashboard() {
     crackIntensity,
     roomTone,
     exportBypassSculpt,
+    crackSampleId,
     runFullPipeline,
     server,
   ]);
+
+  const applyAsmrPreset = useCallback((next: AsmrStudioSettings) => {
+    setFocus(next.focus);
+    setEqBoost(next.eqBoost);
+    setCrackIntensity(next.crackIntensity);
+    setRoomTone(next.roomTone);
+    setPreviewBypass(next.previewBypass);
+    setExportBypassSculpt(next.exportBypassSculpt);
+    setCrackSampleId(next.crackSampleId);
+    setToggles(next.toggles);
+    setLiveAsmrPreview(next.liveAsmrPreview);
+    appendLog(`ASMR preset loaded · ${next.focus} · crack ${next.crackSampleId}`);
+  }, [appendLog]);
+
+  const asmrSettings: AsmrStudioSettings = useMemo(
+    () => ({
+      focus,
+      eqBoost,
+      crackIntensity,
+      roomTone,
+      previewBypass,
+      exportBypassSculpt,
+      crackSampleId,
+      toggles,
+      liveAsmrPreview,
+    }),
+    [
+      focus,
+      eqBoost,
+      crackIntensity,
+      roomTone,
+      previewBypass,
+      exportBypassSculpt,
+      crackSampleId,
+      toggles,
+      liveAsmrPreview,
+    ],
+  );
 
   return (
     <div className="relative min-h-screen pb-12">
@@ -293,6 +342,13 @@ export function StudioDashboard() {
               onExportBypassChange={setExportBypassSculpt}
               livePreview={liveAsmrPreview}
               onLivePreviewChange={setLiveAsmrPreview}
+              crackSampleId={crackSampleId}
+              onCrackSampleChange={setCrackSampleId}
+            />
+            <AsmrPresetPanel
+              enabled={isServerPipeline}
+              settings={asmrSettings}
+              onApply={applyAsmrPreset}
             />
             <RunPipelineButton
               running={pipeline.running || uploading}
@@ -334,6 +390,8 @@ export function StudioDashboard() {
                 !jobResult?.previewUrls?.reel
               }
               previewBypass={previewBypass}
+              crackIntensity={crackIntensity}
+              crackSampleId={crackSampleId}
               onRefreshMedia={
                 refreshJobMedia
                   ? () => {
@@ -375,6 +433,11 @@ export function StudioDashboard() {
             {audioAnalyzing && file && (
               <p className="text-center text-[10px] text-cyan-400/80">
                 Decoding upload audio for live waveform…
+              </p>
+            )}
+            {decodedViaWorker && file && (
+              <p className="text-center text-[10px] text-emerald-400/80">
+                Waveform decode · shared worker (GPU canvas)
               </p>
             )}
           </div>

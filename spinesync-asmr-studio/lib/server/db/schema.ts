@@ -43,3 +43,22 @@ export const jobLogs = sqliteTable("job_logs", {
   message: text("message").notNull(),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+export const asmrPresets = sqliteTable("asmr_presets", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull(),
+  name: text("name").notNull(),
+  focus: text("focus").notNull(),
+  eqBoost: integer("eq_boost").notNull(),
+  crackIntensity: integer("crack_intensity").notNull(),
+  roomTone: integer("room_tone", { mode: "boolean" }).notNull(),
+  bypassSculpt: integer("bypass_sculpt", { mode: "boolean" }).notNull(),
+  exportBypassSculpt: integer("export_bypass_sculpt", { mode: "boolean" }).notNull(),
+  crackSampleId: text("crack_sample_id").notNull(),
+  togglesJson: text("toggles_json").notNull(),
+  liveAsmrPreview: integer("live_asmr_preview", { mode: "boolean" })
+    .notNull()
+    .default(true),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});

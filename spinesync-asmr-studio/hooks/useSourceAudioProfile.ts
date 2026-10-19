@@ -6,6 +6,7 @@ import {
   type AudioPeakProfile,
 } from "@/lib/client-audio-peaks";
 import { PEAK_TIME_SEC } from "@/lib/waveform";
+import { decodeAudioViaSharedWorker } from "@/lib/waveform/shared-worker-client";
 
 export function emptyAudioProfile(): AudioPeakProfile {
   return {
@@ -20,6 +21,7 @@ export function useSourceAudioProfile(file: File | null) {
   const [profile, setProfile] = useState<AudioPeakProfile>(emptyAudioProfile);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [decodedViaWorker, setDecodedViaWorker] = useState(false);
 
   useEffect(() => {
     if (!file) return;
@@ -30,9 +32,19 @@ export function useSourceAudioProfile(file: File | null) {
     async function run() {
       setLoading(true);
       setError(null);
+      setDecodedViaWorker(false);
       try {
         const buffer = await sourceFile.arrayBuffer();
         if (cancelled) return;
+
+        const fromWorker = await decodeAudioViaSharedWorker(buffer.slice(0));
+        if (cancelled) return;
+
+        if (fromWorker) {
+          setProfile(fromWorker);
+          setDecodedViaWorker(true);
+          return;
+        }
 
         const ctx = new AudioContext();
         try {
@@ -59,8 +71,13 @@ export function useSourceAudioProfile(file: File | null) {
   }, [file]);
 
   if (!file) {
-    return { profile: emptyAudioProfile(), loading: false, error: null };
+    return {
+      profile: emptyAudioProfile(),
+      loading: false,
+      error: null,
+      decodedViaWorker: false,
+    };
   }
 
-  return { profile, loading, error };
+  return { profile, loading, error, decodedViaWorker };
 }

@@ -67,6 +67,26 @@ function ensureSchema(sqlite: Database.Database) {
   if (!columnExists(sqlite, "jobs", "project_id")) {
     sqlite.exec(`ALTER TABLE jobs ADD COLUMN project_id TEXT;`);
   }
+
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS asmr_presets (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      focus TEXT NOT NULL,
+      eq_boost INTEGER NOT NULL,
+      crack_intensity INTEGER NOT NULL,
+      room_tone INTEGER NOT NULL,
+      bypass_sculpt INTEGER NOT NULL,
+      export_bypass_sculpt INTEGER NOT NULL,
+      crack_sample_id TEXT NOT NULL,
+      toggles_json TEXT NOT NULL,
+      live_asmr_preview INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS asmr_presets_project_id ON asmr_presets(project_id);
+  `);
 }
 
 const globalForDb = globalThis as unknown as {

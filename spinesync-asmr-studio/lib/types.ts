@@ -57,4 +57,5 @@ export interface PipelineRunContext {
   crackIntensity?: number;
   roomTone?: boolean;
   bypassSculpt?: boolean;
+  crackSampleId?: string;
 }

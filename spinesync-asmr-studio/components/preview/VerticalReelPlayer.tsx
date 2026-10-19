@@ -7,6 +7,7 @@ import { ReelScrubber } from "./ReelScrubber";
 import { SubtitleOverlay } from "./SubtitleOverlay";
 import { WaveformCanvas } from "./WaveformCanvas";
 import { useLiveAsmrAudio } from "@/hooks/useLiveAsmrAudio";
+import type { CrackSampleId } from "@/lib/crack-samples";
 import type { FocusCategory, SamplePreset } from "@/lib/types";
 
 const MOCK_DURATION_SEC = 12;
@@ -26,6 +27,8 @@ interface VerticalReelPlayerProps {
   focus: FocusCategory;
   liveAsmrPreview?: boolean;
   previewBypass?: boolean;
+  crackIntensity?: number;
+  crackSampleId?: CrackSampleId;
 }
 
 export function VerticalReelPlayer({
@@ -43,6 +46,8 @@ export function VerticalReelPlayer({
   focus,
   liveAsmrPreview = false,
   previewBypass = false,
+  crackIntensity = 65,
+  crackSampleId = "syn-bright",
 }: VerticalReelPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -63,14 +68,6 @@ export function VerticalReelPlayer({
   const [soundOn, setSoundOn] = useState(true);
   const [videoDurationSec, setVideoDurationSec] = useState(0);
   const hasKaraoke = Boolean(captionSegments?.length);
-  useLiveAsmrAudio(videoRef, {
-    enabled: liveAsmrPreview && Boolean(videoUrl),
-    videoUrl,
-    soundOn,
-    focus,
-    eqBoost,
-    bypassSculpt: previewBypass,
-  });
 
   const durationSec =
     videoUrl && videoDurationSec > 0
@@ -99,6 +96,21 @@ export function VerticalReelPlayer({
   );
 
   const getTimeSec = useCallback(() => timeRef.current, []);
+
+  useLiveAsmrAudio(videoRef, {
+    enabled: liveAsmrPreview && Boolean(videoUrl),
+    videoUrl,
+    soundOn,
+    focus,
+    eqBoost,
+    bypassSculpt: previewBypass,
+    sfxCrackPreview: sfxCrack,
+    crackIntensity,
+    crackSampleId,
+    peakTimeSec,
+    isPlaying,
+    getTimeSec,
+  });
 
   useEffect(() => {
     if (!isPlaying || hasKaraoke) return;

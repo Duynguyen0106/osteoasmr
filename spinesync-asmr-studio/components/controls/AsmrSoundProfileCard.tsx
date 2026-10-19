@@ -3,6 +3,7 @@
 import { AudioLines } from "lucide-react";
 import { ASMR_TARGET_LUFS } from "@/lib/asmr-export";
 import { getAsmrProfile, eqBoostToGainDb } from "@/lib/asmr-profiles";
+import { CRACK_SAMPLES, type CrackSampleId } from "@/lib/crack-samples";
 import type { FocusCategory } from "@/lib/types";
 
 interface AsmrSoundProfileCardProps {
@@ -18,6 +19,8 @@ interface AsmrSoundProfileCardProps {
   onExportBypassChange: (value: boolean) => void;
   livePreview: boolean;
   onLivePreviewChange: (value: boolean) => void;
+  crackSampleId: CrackSampleId;
+  onCrackSampleChange: (value: CrackSampleId) => void;
 }
 
 export function AsmrSoundProfileCard({
@@ -33,6 +36,8 @@ export function AsmrSoundProfileCard({
   onExportBypassChange,
   livePreview,
   onLivePreviewChange,
+  crackSampleId,
+  onCrackSampleChange,
 }: AsmrSoundProfileCardProps) {
   const profile = getAsmrProfile(focus);
   const gainDb = eqBoostToGainDb(eqBoost);
@@ -41,13 +46,35 @@ export function AsmrSoundProfileCard({
     <div className="rounded-xl border border-cyan-500/15 bg-slate-900/40 p-3 space-y-3">
       <div className="flex items-center gap-2 text-xs font-semibold text-white">
         <AudioLines className="h-4 w-4 text-cyan-400" aria-hidden />
-        ASMR sound sculpt (Phase 3)
+        ASMR sound sculpt (Phase 4)
       </div>
       <p className="text-[11px] text-slate-400">{profile.label}</p>
       <p className="font-mono text-[10px] text-cyan-300/90">
         Multiband · 80 Hz HPF · +{gainDb} dB @ {profile.centerHz} Hz · 10 kHz
         shelf · loudnorm {ASMR_TARGET_LUFS} LUFS
       </p>
+
+      <div>
+        <label className="mb-1 block text-[11px] text-slate-400">
+          Crack sample library
+        </label>
+        <select
+          value={crackSampleId}
+          onChange={(e) => onCrackSampleChange(e.target.value as CrackSampleId)}
+          className="w-full rounded-lg border border-slate-600/50 bg-slate-950/60 px-2 py-1.5 text-[11px] text-slate-200"
+          aria-label="Crack sample"
+        >
+          {CRACK_SAMPLES.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-[10px] text-slate-500">
+          Live preview schedules sample @ peak; export uses same primary + ribbon
+          tail.
+        </p>
+      </div>
 
       <div>
         <div className="mb-1 flex justify-between text-[11px]">

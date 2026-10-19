@@ -105,6 +105,7 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
             crackIntensity: config.crackIntensity ?? 65,
             roomTone: config.roomTone ?? false,
             bypassSculpt: config.bypassSculpt ?? false,
+            crackSampleId: config.crackSampleId ?? "syn-bright",
             peakTimeSec: peak.timeSec,
           });
         }
@@ -267,6 +268,7 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
         crackIntensity: config.crackIntensity ?? 65,
         roomTone: config.roomTone ?? false,
         bypassSculpt: config.bypassSculpt ?? false,
+        crackSampleId: config.crackSampleId ?? "syn-bright",
         targetLufs: ASMR_TARGET_LUFS,
       },
       copy: jobCopy,
