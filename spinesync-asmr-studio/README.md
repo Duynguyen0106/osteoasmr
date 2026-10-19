@@ -32,7 +32,7 @@ Copy `.env.example` to `.env.local` for server mode. Requires **ffmpeg** on `PAT
 | POST | `/api/jobs` | Create job (JSON body, see `lib/contract/job.ts`) |
 | GET | `/api/jobs/:id` | Status, stages, logs, result |
 | GET | `/api/jobs/:id/stream` | SSE log/stage/complete events |
-| POST | `/api/jobs/:id/publish` | Mock Ayrshare dispatch + terminal logs |
+| POST | `/api/jobs/:id/publish` | Ayrshare dispatch (reel URL + YouTube/X thumb when configured) |
 | GET | `/api/media/*` | Serve job artifacts (reel, thumb, etc.) |
 
 Artifacts live under `.data/uploads/` (gitignored).

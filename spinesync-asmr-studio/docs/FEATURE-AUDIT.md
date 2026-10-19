@@ -10,27 +10,27 @@ Single-page **automation studio** for osteopathic 9:16 ASMR reels: ingest → sc
 |------|--------|
 | Upload + peak (Web Audio / ffmpeg) | ✅ |
 | Live ASMR preview (EQ + crack WAV) | ✅ |
-| Server pipeline (EQ, Whisper, reel, thumb, copy) | ✅ with ffmpeg + S3 on Vercel |
+| Server pipeline (EQ, Whisper, reel, GPT copy, branded thumb) | ✅ with ffmpeg + S3 on Vercel |
+| Quick ffmpeg preview + quick thumbnail APIs | ✅ server mode |
 | Job history, SSE logs, signed exports | ✅ server mode |
 | Ops panels (S3, worker, Remotion, integrations) | ✅ |
-| **Reel Pro Editor (v1)** | ✅ trim, peak, captions, zoom → job `edit` payload |
+| **Reel Pro Editor (Phase 2)** | ✅ trim, peak, captions, B-roll, zoom, `thumbTimeSec`, edit persistence |
+| Routing `/editor`, `/jobs/:id/edit` | ✅ |
+| Ayrshare publish with reel + YouTube/X thumb when HTTPS media | ✅ when `AYRSHARE_API_KEY` + `APP_BASE_URL` |
 
-## Gaps vs full NLE (Premiere / CapCut class)
+## Remaining gaps vs full NLE (Premiere / CapCut class)
 
-- No multi-clip timeline or B-roll tracks
+- No multi-clip primary timeline (single source + B-roll overlays only)
 - No keyframed effect stacks (zoom is peak-scalar only)
-- No frame-accurate caption drag on timeline (text edit only)
+- Caption timeline drag/resize is v1 (no word-level karaoke edit in UI)
 - No collaborative review / version branches
-- Full re-render still runs pipeline (no incremental render graph)
+- Full export still runs the six-stage pipeline (incremental preview is ffmpeg-only subset)
 
-## Reel Pro Editor architecture
+## Key architecture
 
-- **UI:** `components/editor/ReelProEditor.tsx`, `TimelineMultiTrack.tsx`
-- **State:** `hooks/useReelEditor.ts`, `lib/contract/reel-edit.ts`
-- **Server:** `lib/server/source-trim.ts`, `edit` on `CreateJobBody`, pipeline trim + caption override
+- **Editor UI:** `ReelProEditor`, `TimelineMultiTrack`, `CaptionTimelineTrack`, `BrollTimelineTrack`
+- **State:** `useReelEditor`, `reel-edit` contract, `localStorage` persistence
+- **Server:** `source-trim`, B-roll composite, `incremental-preview` / `incremental-thumb`, `pipeline-runner`
+- **Thumbnail:** `thumbnail-render`, GPT headline burn-in, Ayrshare `thumbNail` on publish
 
-See `docs/ASMR-SOUND.md` for audio chain details.
-
-## Before Phase 2
-
-See **`docs/PRE-PHASE-2-AUDIT.md`** for merge status, v1 editor verification, P0 gaps (caption/trim timebase, mock mode, markers), and recommended Phase 2 sequencing.
+See `docs/PRE-PHASE-2-AUDIT.md` for Phase 2 checklist history and `docs/THUMBNAIL.md` for thumb phases A–D.

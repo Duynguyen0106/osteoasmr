@@ -1,18 +1,13 @@
-import type { PublishBody } from "@/lib/contract/job";
+import type { JobCopyResult, PublishBody } from "@/lib/contract/job";
 import { appBaseUrl, canPublishToAyrshare, hasAyrshare } from "./config";
-import { publishReelUrlForJob } from "./job-artifacts";
-
-const PLATFORM_MAP: Record<string, string> = {
-  "Instagram Reels": "instagram",
-  TikTok: "tiktok",
-  "YouTube Shorts": "youtube",
-  "Facebook Reels": "facebook",
-};
+import { buildAyrsharePostBody } from "./ayrshare-post-body";
+import { publishReelUrlForJob, publishThumbUrlForJob } from "./job-artifacts";
 
 export interface AyrsharePublishInput {
   jobId: string;
   caption: string;
   publish: PublishBody;
+  copy?: JobCopyResult | null;
 }
 
 export async function publishViaAyrshare(
@@ -34,10 +29,6 @@ export async function publishViaAyrshare(
     };
   }
 
-  const platforms = input.publish.platforms
-    .map((p) => PLATFORM_MAP[p] ?? p.toLowerCase())
-    .filter(Boolean);
-
   const mediaUrl = (await publishReelUrlForJob(input.jobId)) ?? "";
   if (!mediaUrl.startsWith("http")) {
     return {
@@ -47,15 +38,16 @@ export async function publishViaAyrshare(
     };
   }
 
-  const body: Record<string, unknown> = {
-    post: input.caption,
-    platforms,
-    mediaUrls: [mediaUrl],
-  };
-
-  if (input.publish.mode === "queue") {
-    body.scheduleDate = nextPeakHourIso();
-  }
+  const thumbUrl = await publishThumbUrlForJob(input.jobId);
+  const body = buildAyrsharePostBody({
+    caption: input.caption,
+    publish: input.publish,
+    mediaUrl,
+    thumbUrl,
+    copy: input.copy ?? null,
+    scheduleDate:
+      input.publish.mode === "queue" ? nextPeakHourIso() : undefined,
+  });
 
   const res = await fetch("https://app.ayrshare.com/api/post", {
     method: "POST",
@@ -81,10 +73,14 @@ export async function publishViaAyrshare(
     };
   }
 
+  const thumbNote =
+    thumbUrl?.startsWith("https://") ? " · thumb attached" : "";
+
   return {
     ok: true,
     provider: "ayrshare",
-    detail: input.publish.mode === "queue" ? "scheduled" : "posted",
+    detail:
+      (input.publish.mode === "queue" ? "scheduled" : "posted") + thumbNote,
     postId: json.id ?? json.postId,
   };
 }
