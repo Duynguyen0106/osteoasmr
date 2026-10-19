@@ -1,8 +1,7 @@
 # Pre–Phase 2 Audit — SpineSync ASMR Studio v2.5
 
-**Date:** 2026-10-19  
-**Branch audited:** `cursor/reel-editor-pro-abcc` (PR [#7](https://github.com/Duynguyen0106/osteoasmr/pull/7))  
-**Production `main`:** still at CI/Vercel fix merge — **editor + audit gaps not merged yet**
+**Date:** 2026-10-19 (updated after Track A go-live)  
+**Production `main`:** Phase 2, thumbnails, Hobby API consolidation, **Vercel Blob** — deployed to https://spinesync-asmr-studio.vercel.app
 
 ---
 
@@ -10,11 +9,10 @@
 
 | Verdict | Detail |
 |--------|--------|
-| **Automation studio** | Solid for ingest → ASMR sculpt → ffmpeg pipeline → exports (server mode + S3 on Vercel). |
-| **Reel Pro Editor v1** | Usable for trim, manual peak, zoom intensity, caption **text** override; wired to `POST /api/jobs` via `edit`. |
-| **Ready for Phase 2?** | **Yes, with caveats** — merge stacked PRs first, fix P0 editor/pipeline gaps below, then start Phase 2 on a clean `main`. |
-
-Phase 2 should **not** add tracks/features on top of unresolved v1 parity issues (captions vs trim, mock mode, duration ruler).
+| **Automation studio** | Ingest → ASMR sculpt → ffmpeg pipeline → exports in **server mode**; durable media on Vercel via **Blob** (or S3 if configured). |
+| **Reel Pro Editor** | Phase **2.1–2.6** shipped: trim, captions timeline, B-roll, persistence, routing, incremental preview/thumb. |
+| **Track A (production)** | **`npm run check:production` passes** — bundled ffmpeg, `pipelineReady: true`, `STORAGE_DRIVER=blob`. |
+| **Next** | §8 manual smoke on production; then Track B (OpenAI/Ayrshare) or Track C (worker) as needed. |
 
 ---
 
@@ -134,7 +132,8 @@ Explicitly **out of scope** for Phase 2 unless product asks: multi-user review, 
 
 - [x] Phase **2.1–2.6** shipped via PRs **#9–#14** (caption timeline → incremental preview)
 - [x] Merge **PR #7** (+ pre-phase-2 checklist) to `main` (2026-10-19)
-- [ ] Smoke: upload → Editor → trim + peak → server pipeline → reel matches trim
+- [ ] Smoke: upload → Editor → trim + peak → server pipeline → reel matches trim (production UI — set `SPINESYNC_DEFAULT_API_KEY` on Vercel for stable bootstrap)
+- [x] Track A gate: `GET /api/health` on production — ffmpeg + blob + `pipelineReady` (2026-10-19)
 - [x] Fix **P0.1** caption/trim timebase — `lib/reel-edit/captions.ts`, pipeline export filter
 - [x] Fix **P0.2** video duration on ruler — `onSourceDurationSec` from preview video metadata
 - [x] Mock mode banner + edit-aware mock pipeline logs
