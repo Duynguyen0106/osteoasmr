@@ -19,7 +19,7 @@ export async function saveUploadedAsset(file: File, projectId?: string) {
   await fs.promises.mkdir(path.dirname(dest), { recursive: true });
   await fs.promises.writeFile(dest, buffer);
 
-  if (storage.driver === "s3") {
+  if (storage.driver !== "local") {
     await storage.putLocalFile(key, dest);
   }
 
@@ -155,7 +155,7 @@ export async function materializeAssetLocalPath(asset: {
   storageKey?: string | null;
   storageDriver?: string | null;
 }): Promise<string> {
-  if (asset.storageDriver !== "s3") {
+  if (asset.storageDriver !== "s3" && asset.storageDriver !== "blob") {
     return asset.storagePath;
   }
   if (!asset.storageKey) return asset.storagePath;

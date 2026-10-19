@@ -19,8 +19,25 @@ export function openAIModel(): string {
   return process.env.OPENAI_COPY_MODEL ?? "gpt-4o-mini";
 }
 
-export function storageDriverEnv(): "local" | "s3" {
-  return process.env.STORAGE_DRIVER === "s3" ? "s3" : "local";
+export type StorageDriverName = "local" | "s3" | "blob";
+
+export function hasBlobConfig(): boolean {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim());
+}
+
+export function storageDriverEnv(): StorageDriverName {
+  const raw = process.env.STORAGE_DRIVER?.trim().toLowerCase();
+  if (raw === "s3") return "s3";
+  if (raw === "blob") return "blob";
+  if (process.env.VERCEL === "1" && hasBlobConfig()) return "blob";
+  return "local";
+}
+
+export function durableStorageConfigured(): boolean {
+  const driver = storageDriverEnv();
+  if (driver === "s3") return hasS3Config();
+  if (driver === "blob") return hasBlobConfig();
+  return true;
 }
 
 export function hasS3Config(): boolean {

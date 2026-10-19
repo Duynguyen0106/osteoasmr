@@ -11,6 +11,8 @@ import {
   canPublishToAyrshare,
   hasAyrshare,
   hasOpenAI,
+  durableStorageConfigured,
+  hasBlobConfig,
   hasS3Config,
   jobExecutor,
   jobQueueBackend,
@@ -31,16 +33,16 @@ export async function GET() {
   ensureDefaultProject();
   const storage = getStorage();
   const defaultProjectId = ensureDefaultProject().id;
-  const s3Configured = storage.driver === "s3" ? hasS3Config() : false;
+  const durableConfigured = durableStorageConfigured();
   const ephemeral = isEphemeralHosting();
-  const durableStorage = pipelineMediaReady(storage.driver, s3Configured);
+  const durableStorage = pipelineMediaReady(storage.driver, durableConfigured);
   const pipelineReady = ffmpegStatus.ok && durableStorage;
   const blockers = pipelineBlockers({
     ffmpegOk: ffmpegStatus.ok,
     ffmpegError: ffmpegStatus.error,
     durableStorage,
     storageDriver: storage.driver,
-    s3Configured,
+    durableConfigured,
   });
 
   return NextResponse.json({
@@ -65,10 +67,16 @@ export async function GET() {
     database: "sqlite",
     storage: {
       driver: storage.driver,
-      configured: storage.driver === "s3" ? hasS3Config() : true,
+      configured:
+        storage.driver === "local"
+          ? true
+          : storage.driver === "s3"
+            ? hasS3Config()
+            : hasBlobConfig(),
       presign: storage.driver === "s3" && hasS3Config(),
       bucket: process.env.AWS_S3_BUCKET ?? null,
       cloudfront: process.env.AWS_CLOUDFRONT_DOMAIN ?? null,
+      blobStore: storage.driver === "blob",
     },
     queue: {
       executor: jobExecutor(),

@@ -19,7 +19,7 @@ import {
   probeDurationSec,
   runFfmpeg,
 } from "./ffmpeg";
-import { hasS3Config, storageDriverEnv } from "./config";
+import { durableStorageConfigured, storageDriverEnv } from "./config";
 import { materializeAssetLocalPath } from "./assets";
 import {
   appendJobLog,
@@ -60,7 +60,7 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
 
   const ffmpegStatus = await checkFfmpegAvailable();
   const storageDriver = storageDriverEnv();
-  const durable = pipelineMediaReady(storageDriver, hasS3Config());
+  const durable = pipelineMediaReady(storageDriver, durableStorageConfigured());
   if (config.assetId && (!ffmpegStatus.ok || !durable)) {
     const reasons: string[] = [];
     if (!ffmpegStatus.ok) {
@@ -68,7 +68,7 @@ export async function runJobPipeline(jobId: string, config: CreateJobBody) {
     }
     if (!durable) {
       reasons.push(
-        "local disk is ephemeral on this host — set STORAGE_DRIVER=s3 for durable job artifacts",
+        "local disk is ephemeral on this host — set STORAGE_DRIVER=blob or s3 for durable job artifacts",
       );
     }
     failJob(jobId, `Pipeline preflight failed: ${reasons.join("; ")}`);

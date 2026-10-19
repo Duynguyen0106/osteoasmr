@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
     "ffprobe-static",
     "@aws-sdk/client-s3",
     "@aws-sdk/s3-request-presigner",
+    "@vercel/blob",
     "@remotion/bundler",
     "@remotion/renderer",
     "ioredis",
@@ -25,8 +26,9 @@ const nextConfig: NextConfig = {
     "/api/assets": FFMPEG_TRACE,
     "/api/media/[...path]": FFMPEG_TRACE,
   },
-  cacheComponents: true,
-  partialPrefetching: true,
+  /** Off on Hobby — PPR routes can count toward the 12-function cap. */
+  cacheComponents: false,
+  partialPrefetching: false,
   turbopack: {
     rules: {
       "*.css": {

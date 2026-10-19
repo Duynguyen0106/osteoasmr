@@ -12,6 +12,7 @@ test("pipelineMediaReady requires S3 on ephemeral hosting", () => {
     assert.equal(isEphemeralHosting(), true);
     assert.equal(pipelineMediaReady("local", false), false);
     assert.equal(pipelineMediaReady("s3", true), true);
+    assert.equal(pipelineMediaReady("blob", true), true);
   } finally {
     if (prev === undefined) delete process.env.SPINESYNC_DATA_ROOT;
     else process.env.SPINESYNC_DATA_ROOT = prev;

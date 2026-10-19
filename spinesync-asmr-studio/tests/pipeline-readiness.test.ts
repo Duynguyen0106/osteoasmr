@@ -11,7 +11,7 @@ test("pipelineBlockers lists ffmpeg and S3 on ephemeral local storage", () => {
       ffmpegError: "ffmpeg: ENOENT",
       durableStorage: false,
       storageDriver: "local",
-      s3Configured: false,
+      durableConfigured: false,
     });
     assert.ok(blockers.some((b) => b.includes("ffmpeg")));
     assert.ok(blockers.some((b) => b.includes("STORAGE_DRIVER=s3")));
@@ -27,7 +27,7 @@ test("pipelineBlockers empty when ffmpeg and durable storage ok", () => {
       ffmpegOk: true,
       durableStorage: true,
       storageDriver: "s3",
-      s3Configured: true,
+      durableConfigured: true,
     }),
     [],
   );

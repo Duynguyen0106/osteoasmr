@@ -4,7 +4,8 @@
   "installCommand": "npm ci && npm rebuild better-sqlite3",
   "env": {
     "NEXT_PUBLIC_PIPELINE_MODE": "server",
-    "SPINESYNC_DATA_ROOT": "/tmp/spinesync"
+    "SPINESYNC_DATA_ROOT": "/tmp/spinesync",
+    "STORAGE_DRIVER": "blob"
   },
   "functions": {
     "app/api/jobs/**": {
