@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { ApiKeyPanel } from "@/components/layout/ApiKeyPanel";
+import { S3StoragePanel } from "@/components/layout/S3StoragePanel";
 import { AuthBootstrap } from "@/components/layout/AuthBootstrap";
 import { Header } from "@/components/layout/Header";
 import { StudioCapabilityBanner } from "@/components/layout/StudioCapabilityBanner";
@@ -378,6 +379,7 @@ export function StudioDashboard() {
               visible={isServerPipeline}
               requireApiKey={studioHealth?.auth?.requireApiKey ?? false}
             />
+            <S3StoragePanel health={studioHealth} />
             <RunPipelineButton
               running={pipeline.running || uploading}
               disabled={!canRunPipeline}
