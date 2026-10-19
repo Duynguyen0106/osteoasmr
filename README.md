@@ -18,8 +18,10 @@ See [spinesync-asmr-studio/README.md](./spinesync-asmr-studio/README.md) for com
 
 ## Vercel (monorepo)
 
-Both **osteoasmr** and **spinesync-asmr-studio** Vercel projects should build from this repo. Root [`vercel.json`](./vercel.json) sets `"rootDirectory": "spinesync-asmr-studio"` so the **osteoasmr** Vercel project builds the Next app (not an empty repo root).
+Both **osteoasmr** and **spinesync-asmr-studio** Vercel projects can build from this repo. Root [`vercel.json`](./vercel.json) runs install/build inside `spinesync-asmr-studio/`.
 
-For the **spinesync-asmr-studio** Vercel project, keep **Root Directory** = `spinesync-asmr-studio` in the dashboard (uses `spinesync-asmr-studio/vercel.json` only).
+For **spinesync-asmr-studio** (recommended production app), set Vercel **Root Directory** = `spinesync-asmr-studio`. Production URL: https://spinesync-asmr-studio.vercel.app
+
+If GitHub Vercel checks fail (rate limits or duplicate projects), open Vercel → **spinesync-asmr-studio** → Deployments → **Redeploy** on latest `main`.
 
 Set production secrets in Vercel: `SPINESYNC_SESSION_SECRET`, `SPINESYNC_MEDIA_TOKEN_SECRET`, and optionally `SPINESYNC_DEFAULT_API_KEY`.
