@@ -12,6 +12,7 @@ test("createJobBodySchema accepts edit payload", () => {
       trimInSec: 1.5,
       trimOutSec: 12,
       peakTimeSec: 4,
+      thumbTimeSec: 6.5,
       zoomIntensity: 80,
       markers: [{ id: "m1", timeSec: 2, color: "cyan" }],
       brollOverlays: [

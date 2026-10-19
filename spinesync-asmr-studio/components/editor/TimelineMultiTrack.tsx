@@ -68,6 +68,11 @@ export function TimelineMultiTrack({
   const clipDur = clipDurationSec(edit);
   const playheadSource = edit.trimInSec + playheadSec;
   const peakSource = edit.trimInSec + peakSec;
+  const thumbClipSec = edit.thumbTimeSec ?? peakSec;
+  const thumbSource = edit.trimInSec + thumbClipSec;
+  const thumbDistinct =
+    edit.thumbTimeSec != null &&
+    Math.abs(edit.thumbTimeSec - peakSec) > 0.05;
 
   const timeFromEvent = (clientX: number, rect: DOMRect) =>
     (Math.min(rect.width, Math.max(0, clientX - rect.left)) / rect.width) *
@@ -116,6 +121,13 @@ export function TimelineMultiTrack({
           style={{ left: `${pct(peakSource, sourceDur)}%` }}
           title="Peak"
         />
+        {thumbDistinct && (
+          <div
+            className="absolute top-0 bottom-0 w-0.5 bg-rose-400/95 z-10"
+            style={{ left: `${pct(thumbSource, sourceDur)}%` }}
+            title="Thumbnail frame"
+          />
+        )}
         <div
           className="absolute inset-0 cursor-crosshair z-0"
           onClick={(e) => {

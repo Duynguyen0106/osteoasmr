@@ -117,6 +117,20 @@ export function useReelEditor(options: {
     [commit, edit],
   );
 
+  const setThumbAtPlayhead = useCallback(() => {
+    commit({
+      ...edit,
+      thumbTimeSec: playheadSec,
+    });
+  }, [commit, edit, playheadSec]);
+
+  const clearThumbOverride = useCallback(() => {
+    commit({
+      ...edit,
+      thumbTimeSec: null,
+    });
+  }, [commit, edit]);
+
   const addMarker = useCallback(
     (timeSec: number, label?: string) => {
       const marker: ReelMarker = {
@@ -237,6 +251,7 @@ export function useReelEditor(options: {
 
   const clipDuration = clipDurationSec(edit);
   const peakDisplay = edit.peakTimeSec ?? initialPeakSec;
+  const thumbDisplay = edit.thumbTimeSec ?? peakDisplay;
 
   return {
     edit,
@@ -249,6 +264,9 @@ export function useReelEditor(options: {
     setTrimIn,
     setTrimOut,
     setPeak,
+    setThumbAtPlayhead,
+    clearThumbOverride,
+    thumbDisplay,
     addMarker,
     setInAtPlayhead,
     setOutAtPlayhead,

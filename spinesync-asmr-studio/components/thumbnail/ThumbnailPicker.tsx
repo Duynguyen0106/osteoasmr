@@ -10,6 +10,8 @@ interface ThumbnailPickerProps {
   freqGainDb?: number;
   freqKhz?: number;
   thumbUrl?: string | null;
+  /** Clip-relative thumb time when set in editor (before export). */
+  thumbTimeSec?: number | null;
 }
 
 export function ThumbnailPicker({
@@ -20,13 +22,15 @@ export function ThumbnailPicker({
   freqGainDb,
   freqKhz,
   thumbUrl,
+  thumbTimeSec = null,
 }: ThumbnailPickerProps) {
   const gain =
     freqGainDb ??
     Math.round((preset.freqGainDb + eqBoost * 0.05) * 10) / 10;
   const peak = peakDb ?? preset.peakDb;
   const khz = freqKhz ?? preset.freqKhz;
-  const tsLabel = peakTimeSec.toFixed(1).padStart(4, "0");
+  const frameSec = thumbTimeSec ?? peakTimeSec;
+  const tsLabel = frameSec.toFixed(1).padStart(4, "0");
 
   const baked = Boolean(thumbUrl);
 
@@ -60,7 +64,7 @@ export function ThumbnailPicker({
       <p className="mt-2 text-[11px] text-slate-500">
         {baked
           ? "9:16 JPG from pipeline · headline and contrast baked into export"
-          : `Placeholder until server pipeline · peak @ 00:${tsLabel}s · Crack Peak: ${peak} dB · Gain: +${gain} dB @ ${khz}kHz`}
+          : `Placeholder until server pipeline · frame @ 00:${tsLabel}s on clip${thumbTimeSec != null ? " (custom)" : ""} · Crack Peak: ${peak} dB · Gain: +${gain} dB @ ${khz}kHz`}
       </p>
     </div>
   );
