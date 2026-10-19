@@ -142,7 +142,7 @@ Explicitly **out of scope** for Phase 2 unless product asks: multi-user review, 
 - [x] CI uses `test:unit` only (integration SIGSEGV on Actions)
 - [x] Job history restores `edit` from GET `/api/jobs/:id`
 
-### Phase 2.1 — caption timeline (in progress)
+### Phase 2.1 — caption timeline
 
 - [x] Drag caption blocks to move (source timeline)
 - [x] Resize start/end handles in Caption tool
@@ -159,6 +159,14 @@ When smoke is checked, proceed to Phase 2.2 (edit persistence / asset store).
 - [x] Job History restore also writes storage so editor + pipeline stay aligned
 - [x] `ReelProEditor` accepts `initialEdit` for remount after restore
 - [ ] Manual smoke: edit → refresh page → trim/captions still present
+
+### Phase 2.3 — duration + sync
+
+- [x] Authoritative ruler duration via `resolveSourceDuration` (video metadata over decoded audio)
+- [x] Timeline shows duration source + clip length; warn when audio/video lengths diverge
+- [x] Mock mode banner and pipeline logs summarize pending clip (trim, peak, captions)
+- [x] Editor copy clarifies preview-only vs server export
+- [ ] Manual smoke: long file where audio decode ≠ video duration — warning visible, trim sane
 
 ---
 

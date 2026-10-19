@@ -8,12 +8,14 @@ interface StudioCapabilityBannerProps {
   health: StudioHealth | null;
   healthError: string | null;
   mockEditPending?: boolean;
+  mockEditDetail?: string | null;
 }
 
 export function StudioCapabilityBanner({
   health,
   healthError,
   mockEditPending = false,
+  mockEditDetail = null,
 }: StudioCapabilityBannerProps) {
   if (!isServerPipeline) {
     return (
@@ -29,8 +31,8 @@ export function StudioCapabilityBanner({
         </p>
         {mockEditPending && (
           <p className="rounded-lg border border-fuchsia-500/30 bg-fuchsia-950/30 px-3 py-2 text-center text-[11px] text-fuchsia-100">
-            Reel Pro Editor changes apply on export only in{" "}
-            <strong>server mode</strong> — mock run will not trim or bake captions.
+            {mockEditDetail ??
+              "Reel Pro Editor changes apply on export only in server mode — mock run will not trim or bake captions."}
           </p>
         )}
       </div>
