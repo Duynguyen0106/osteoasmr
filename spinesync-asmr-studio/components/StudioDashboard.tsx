@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { useReelEditPersistence } from "@/hooks/useReelEditPersistence";
+import { savePersistedReelEdit } from "@/lib/reel-edit/persist";
 import { ApiKeyPanel } from "@/components/layout/ApiKeyPanel";
 import { StudioOpsPanels } from "@/components/layout/StudioOpsPanels";
 import { AuthBootstrap } from "@/components/layout/AuthBootstrap";
@@ -73,8 +75,14 @@ export function StudioDashboard() {
   const [crackSampleId, setCrackSampleId] = useState<CrackSampleId>("syn-bright");
   const [studioView, setStudioView] = useState<StudioView>("pipeline");
   const [reelEdit, setReelEdit] = useState<ReelEditState | null>(null);
+  const [editorBootKey, setEditorBootKey] = useState(0);
   const [editorSeekClipSec, setEditorSeekClipSec] = useState<number | null>(null);
   const [videoSourceDurationSec, setVideoSourceDurationSec] = useState(0);
+
+  const bumpEditorFromStoredEdit = useCallback((edit: ReelEditState) => {
+    setReelEdit(edit);
+    setEditorBootKey((k) => k + 1);
+  }, []);
 
   const mock = usePipeline();
   const server = usePipelineServer({
@@ -118,6 +126,19 @@ export function StudioDashboard() {
     jobResult?.peak.timeSec ? jobResult.peak.timeSec * 2 : 0,
     0.1,
   ) || 12;
+
+  const onPersistedEditRestored = useCallback(() => {
+    appendLog("Restored reel edit from browser storage");
+  }, [appendLog]);
+
+  useReelEditPersistence({
+    assetId,
+    file,
+    sourceDurationSec,
+    reelEdit,
+    onRestore: bumpEditorFromStoredEdit,
+    onRestoredLog: onPersistedEditRestored,
+  });
 
   const peakTimeSec =
     jobResult?.peak.timeSec ??
@@ -393,13 +414,14 @@ export function StudioDashboard() {
       <main className="relative mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6">
         {studioView === "editor" && editorEnabled && (
           <ReelProEditor
-            key={`editor-${sourceDurationSec}-${jobResult?.captionSegments?.length ?? 0}`}
+            key={`editor-${editorBootKey}-${assetId ?? "local"}-${sourceDurationSec}-${jobResult?.captionSegments?.length ?? 0}`}
             sourceDurationSec={sourceDurationSec}
             peakTimeSec={peakTimeSec}
             captionSegments={jobResult?.captionSegments}
             audioEnvelope={
               sourceAudio.envelope.length ? sourceAudio.envelope : null
             }
+            initialEdit={reelEdit}
             onEditChange={setReelEdit}
             onSeekPreview={(t) => setEditorSeekClipSec(t)}
           />
@@ -479,7 +501,15 @@ export function StudioDashboard() {
                 onOpenJob={(id) =>
                   void server.loadJob(id, (edit) => {
                     if (edit) {
-                      setReelEdit(edit);
+                      bumpEditorFromStoredEdit(edit);
+                      if (typeof window !== "undefined") {
+                        savePersistedReelEdit(
+                          window.localStorage,
+                          { assetId, file },
+                          edit,
+                          sourceDurationSec,
+                        );
+                      }
                       setStudioView("editor");
                       appendLog("Restored reel edit from job config");
                     }

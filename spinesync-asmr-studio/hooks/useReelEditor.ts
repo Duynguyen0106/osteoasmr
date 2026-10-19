@@ -19,11 +19,16 @@ export function useReelEditor(options: {
   sourceDurationSec: number;
   initialPeakSec: number;
   captionSegments?: CaptionSegment[] | null;
+  initialEdit?: ReelEditState | null;
 }) {
-  const { sourceDurationSec, initialPeakSec, captionSegments } = options;
+  const { sourceDurationSec, initialPeakSec, captionSegments, initialEdit } =
+    options;
   const dur = Math.max(sourceDurationSec, 0.1);
 
   const [edit, setEditRaw] = useState<ReelEditState>(() => {
+    if (initialEdit) {
+      return normalizeReelEdit(initialEdit, dur);
+    }
     const base = defaultReelEdit(dur);
     const peakClip = Math.max(0, Math.min(initialPeakSec - base.trimInSec, dur));
     return normalizeReelEdit(

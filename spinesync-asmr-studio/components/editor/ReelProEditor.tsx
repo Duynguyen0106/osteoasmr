@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { CaptionSegment } from "@/lib/contract/job";
+import type { ReelEditState } from "@/lib/contract/reel-edit";
 import { TimelineMultiTrack } from "@/components/editor/TimelineMultiTrack";
 import { useReelEditor, type EditorTool } from "@/hooks/useReelEditor";
 
@@ -26,6 +27,7 @@ interface ReelProEditorProps {
   peakTimeSec: number;
   captionSegments?: CaptionSegment[] | null;
   audioEnvelope?: number[] | null;
+  initialEdit?: ReelEditState | null;
   onEditChange?: (edit: ReturnType<typeof useReelEditor>["edit"]) => void;
   onSeekPreview?: (clipTimeSec: number) => void;
 }
@@ -35,6 +37,7 @@ export function ReelProEditor({
   peakTimeSec,
   captionSegments,
   audioEnvelope,
+  initialEdit,
   onEditChange,
   onSeekPreview,
 }: ReelProEditorProps) {
@@ -42,6 +45,7 @@ export function ReelProEditor({
     sourceDurationSec,
     initialPeakSec: Math.max(0, peakTimeSec),
     captionSegments,
+    initialEdit,
   });
   const [captionIndex, setCaptionIndex] = useState(0);
 
