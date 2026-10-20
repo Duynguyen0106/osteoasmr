@@ -7,7 +7,7 @@ type WorkerProfile = AudioPeakProfile;
 let sharedPort: MessagePort | null = null;
 let connectPromise: Promise<MessagePort | null> | null = null;
 
-function connectSharedWorker(): Promise<MessagePort | null> {
+export function connectWaveformSharedWorkerPort(): Promise<MessagePort | null> {
   if (typeof window === "undefined" || typeof SharedWorker === "undefined") {
     return Promise.resolve(null);
   }
@@ -34,7 +34,7 @@ function connectSharedWorker(): Promise<MessagePort | null> {
 export async function decodeAudioViaSharedWorker(
   buffer: ArrayBuffer,
 ): Promise<WorkerProfile | null> {
-  const port = await connectSharedWorker();
+  const port = await connectWaveformSharedWorkerPort();
   if (!port) return null;
 
   const requestId = crypto.randomUUID();
@@ -66,9 +66,20 @@ export async function attachWaveformOffscreen(
   height: number,
   devicePixelRatio: number,
 ): Promise<MessagePort | null> {
-  const port = await connectSharedWorker();
+  const port = await connectWaveformSharedWorkerPort();
   if (!port) return null;
 
+  postWaveformOffscreenAttach(port, canvas, width, height, devicePixelRatio);
+  return port;
+}
+
+export function postWaveformOffscreenAttach(
+  port: MessagePort,
+  canvas: OffscreenCanvas,
+  width: number,
+  height: number,
+  devicePixelRatio: number,
+) {
   port.postMessage(
     {
       type: "attach",
@@ -79,8 +90,6 @@ export async function attachWaveformOffscreen(
     },
     [canvas],
   );
-
-  return port;
 }
 
 export function postWaveformEnvelope(

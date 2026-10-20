@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useRef } from "react";
 import { drawWaveformFrame } from "@/lib/waveform/draw-frame";
 import {
-  attachWaveformOffscreen,
+  connectWaveformSharedWorkerPort,
   postWaveformEnvelope,
   postWaveformFrame,
+  postWaveformOffscreenAttach,
 } from "@/lib/waveform/shared-worker-client";
 
 export function useWaveformCanvas(
@@ -21,6 +22,8 @@ export function useWaveformCanvas(
   const getTimeRef = useRef(getTimeSec);
   const workerPortRef = useRef<MessagePort | null>(null);
   const workerActiveRef = useRef(false);
+  /** After transferControlToOffscreen(), getContext on the DOM canvas throws. */
+  const canvasTransferredRef = useRef(false);
 
   useEffect(() => {
     getTimeRef.current = getTimeSec;
@@ -28,6 +31,7 @@ export function useWaveformCanvas(
 
   const drawMainThread = useCallback(
     (timeSec: number) => {
+      if (canvasTransferredRef.current) return;
       const canvas = canvasRef.current;
       if (!canvas || workerActiveRef.current) return;
       const ctx = canvas.getContext("2d");
@@ -82,29 +86,38 @@ export function useWaveformCanvas(
     let cancelled = false;
 
     void (async () => {
+      const port = await connectWaveformSharedWorkerPort();
+      if (cancelled || !port) return;
+
       const rect = canvas.getBoundingClientRect();
       const w = rect.width || canvas.clientWidth;
       const h = rect.height || canvas.clientHeight;
       if (w === 0 || h === 0) return;
 
+      canvasTransferredRef.current = true;
       const offscreen = canvas.transferControlToOffscreen();
-      const port = await attachWaveformOffscreen(
+      workerPortRef.current = port;
+      workerActiveRef.current = true;
+      postWaveformOffscreenAttach(
+        port,
         offscreen,
         w,
         h,
         window.devicePixelRatio || 1,
       );
-      if (cancelled || !port) return;
 
-      workerPortRef.current = port;
-      workerActiveRef.current = true;
       if (audioEnvelope?.length) {
         postWaveformEnvelope(port, {
           envelope: audioEnvelope,
           durationSec: audioDurationSec,
         });
       }
-      draw(getTimeRef.current());
+      postWaveformFrame(port, {
+        timeSec: getTimeRef.current(),
+        eqBoost,
+        sfxCrack,
+        peakTimeSec,
+      });
     })();
 
     return () => {
@@ -147,6 +160,7 @@ export function useWaveformCanvas(
   }, [isPlaying, draw]);
 
   useEffect(() => {
+    if (canvasTransferredRef.current) return;
     const canvas = canvasRef.current;
     if (!canvas || workerActiveRef.current) return;
 
