@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { drawWaveformFrame } from "@/lib/waveform/draw-frame";
 import {
   connectWaveformSharedWorkerPort,
@@ -8,6 +8,8 @@ import {
   postWaveformFrame,
   postWaveformOffscreenAttach,
 } from "@/lib/waveform/shared-worker-client";
+
+type WaveformRenderMode = "pending" | "main" | "worker";
 
 export function useWaveformCanvas(
   isPlaying: boolean,
@@ -21,9 +23,9 @@ export function useWaveformCanvas(
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const getTimeRef = useRef(getTimeSec);
   const workerPortRef = useRef<MessagePort | null>(null);
-  const workerActiveRef = useRef(false);
-  /** After transferControlToOffscreen(), getContext on the DOM canvas throws. */
-  const canvasTransferredRef = useRef(false);
+  const [renderMode, setRenderMode] = useState<WaveformRenderMode>("pending");
+  const renderModeRef = useRef<WaveformRenderMode>("pending");
+  renderModeRef.current = renderMode;
 
   useEffect(() => {
     getTimeRef.current = getTimeSec;
@@ -31,9 +33,9 @@ export function useWaveformCanvas(
 
   const drawMainThread = useCallback(
     (timeSec: number) => {
-      if (canvasTransferredRef.current) return;
+      if (renderModeRef.current !== "main") return;
       const canvas = canvasRef.current;
-      if (!canvas || workerActiveRef.current) return;
+      if (!canvas) return;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
@@ -62,8 +64,11 @@ export function useWaveformCanvas(
 
   const draw = useCallback(
     (timeSec: number) => {
+      const mode = renderModeRef.current;
+      if (mode === "pending") return;
+
       const port = workerPortRef.current;
-      if (port && workerActiveRef.current) {
+      if (mode === "worker" && port) {
         postWaveformFrame(port, {
           timeSec,
           eqBoost,
@@ -79,58 +84,61 @@ export function useWaveformCanvas(
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || typeof canvas.transferControlToOffscreen !== "function") {
-      return;
-    }
+    if (!canvas) return;
 
     let cancelled = false;
 
     void (async () => {
       const port = await connectWaveformSharedWorkerPort();
-      if (cancelled || !port) return;
+      if (cancelled) return;
 
       const rect = canvas.getBoundingClientRect();
       const w = rect.width || canvas.clientWidth;
       const h = rect.height || canvas.clientHeight;
-      if (w === 0 || h === 0) return;
 
-      canvasTransferredRef.current = true;
-      const offscreen = canvas.transferControlToOffscreen();
-      workerPortRef.current = port;
-      workerActiveRef.current = true;
-      postWaveformOffscreenAttach(
-        port,
-        offscreen,
-        w,
-        h,
-        window.devicePixelRatio || 1,
-      );
-
-      if (audioEnvelope?.length) {
-        postWaveformEnvelope(port, {
-          envelope: audioEnvelope,
-          durationSec: audioDurationSec,
-        });
+      if (
+        port &&
+        w > 0 &&
+        h > 0 &&
+        typeof canvas.transferControlToOffscreen === "function"
+      ) {
+        const offscreen = canvas.transferControlToOffscreen();
+        workerPortRef.current = port;
+        renderModeRef.current = "worker";
+        setRenderMode("worker");
+        postWaveformOffscreenAttach(
+          port,
+          offscreen,
+          w,
+          h,
+          window.devicePixelRatio || 1,
+        );
+        if (audioEnvelope?.length) {
+          postWaveformEnvelope(port, {
+            envelope: audioEnvelope,
+            durationSec: audioDurationSec,
+          });
+        }
+      } else {
+        renderModeRef.current = "main";
+        setRenderMode("main");
       }
-      postWaveformFrame(port, {
-        timeSec: getTimeRef.current(),
-        eqBoost,
-        sfxCrack,
-        peakTimeSec,
-      });
+
+      draw(getTimeRef.current());
     })();
 
     return () => {
       cancelled = true;
       workerPortRef.current = null;
-      workerActiveRef.current = false;
+      renderModeRef.current = "pending";
+      setRenderMode("pending");
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- attach once per canvas mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pick render path once per canvas mount
   }, []);
 
   useEffect(() => {
     const port = workerPortRef.current;
-    if (!port || !workerActiveRef.current) return;
+    if (renderModeRef.current !== "worker" || !port) return;
     if (audioEnvelope?.length) {
       postWaveformEnvelope(port, {
         envelope: audioEnvelope,
@@ -160,14 +168,14 @@ export function useWaveformCanvas(
   }, [isPlaying, draw]);
 
   useEffect(() => {
-    if (canvasTransferredRef.current) return;
+    if (renderMode !== "main") return;
     const canvas = canvasRef.current;
-    if (!canvas || workerActiveRef.current) return;
+    if (!canvas) return;
 
     const observer = new ResizeObserver(() => draw(getTimeRef.current()));
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [draw]);
+  }, [draw, renderMode]);
 
   return canvasRef;
 }
