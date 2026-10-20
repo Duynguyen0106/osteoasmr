@@ -7,6 +7,21 @@
 const base = (process.env.PRODUCTION_URL ?? "https://spinesync-asmr-studio.vercel.app")
   .replace(/\/$/, "");
 
+const homeRes = await fetch(`${base}/`, {
+  headers: { Accept: "text/html" },
+});
+const homeHtml = await homeRes.text();
+if (!homeRes.ok || homeHtml.includes("__next_error__")) {
+  console.error(
+    `FAIL · Home page HTTP ${homeRes.status} or Next error shell at ${base}/`,
+  );
+  process.exit(1);
+}
+if (!homeHtml.includes("SpineSync ASMR")) {
+  console.error(`FAIL · Home page missing studio shell at ${base}/`);
+  process.exit(1);
+}
+
 const res = await fetch(`${base}/api/health`, {
   headers: { Accept: "application/json" },
 });
